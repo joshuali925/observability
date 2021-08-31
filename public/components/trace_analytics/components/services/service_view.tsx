@@ -81,7 +81,7 @@ export function ServiceView(props: ServiceViewProps) {
         href: `#/trace_analytics/services/${encodeURIComponent(props.serviceName)}`,
       },
     ]);
-  }, []);
+  }, [props.serviceName]);
 
   useEffect(() => {
     if (!redirect) refresh();
