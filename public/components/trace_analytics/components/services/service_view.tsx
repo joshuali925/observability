@@ -188,6 +188,7 @@ export function ServiceView(props: ServiceViewProps) {
                   {fields.traces === 0 || fields.traces ? (
                     <EuiLink
                       onClick={() => {
+                        setRedirect(true);
                         props.addFilter({
                           field: 'serviceName',
                           operator: 'is',
