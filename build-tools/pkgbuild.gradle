@@ -54,7 +54,7 @@ afterEvaluate {
         maintainer 'OpenSearch Team <opensearch@amazon.com>'
         url 'https://opensearch.org/'
         summary '''
-         OpenSearch Notebooks.
+         OpenSearch Observability.
          Reference documentation can be found at https://opensearch.org/docs/.
     '''.stripIndent().replace('\n', ' ').trim()
     }

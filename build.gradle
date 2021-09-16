@@ -73,13 +73,13 @@ def usingMultiNode = project.properties.containsKey('numNodes')
 check.dependsOn jacocoTestReport
 
 opensearchplugin {
-    name 'opensearch-notebooks'
-    description 'OpenSearch Plugin for OpenSearch Dashboards Notebooks'
-    classname "org.opensearch.notebooks.NotebooksPlugin"
+    name 'opensearch-observability'
+    description 'OpenSearch Plugin for OpenSearch Dashboards Observability'
+    classname "org.opensearch.observability.ObservabilityPlugin"
 }
 
 allOpen {
-    annotation("org.opensearch.notebooks.util.OpenForTesting")
+    annotation("org.opensearch.observability.util.OpenForTesting")
 }
 
 configurations {
@@ -105,7 +105,7 @@ configurations.all {
 }
 
 repositories {
-  mavenLocal()
+    mavenLocal()
     mavenCentral()
     maven { url "https://plugins.gradle.org/m2/" }
     jcenter()
@@ -132,7 +132,7 @@ allprojects {
     version = "${opensearch_version}" - "-SNAPSHOT" + ".0"
     if (isSnapshot) {
         version += "-SNAPSHOT"
-    }    
+    }
 
     plugins.withId('java') {
         sourceCompatibility = targetCompatibility = "1.8"
@@ -240,17 +240,17 @@ integTest {
 
     // https://github.com/opensearch-project/index-management/pull/93
     if (System.getProperty("tests.clustername") != null) {
-        exclude 'org/opensearch/notebooks/NotebooksPluginIT.class'
+        exclude 'org/opensearch/observability/ObservabilityPluginIT.class'
     }
 }
 
 
 Zip bundle = (Zip) project.getTasks().getByName("bundlePlugin");
 integTest.dependsOn(bundle)
-integTest.getClusters().forEach{c -> c.plugin(project.getObjects().fileProperty().value(bundle.getArchiveFile()))}
+integTest.getClusters().forEach { c -> c.plugin(project.getObjects().fileProperty().value(bundle.getArchiveFile())) }
 
 testClusters.integTest {
-    testDistribution = "ARCHIVE"
+    testDistribution = "INTEG_TEST"
     // Cluster shrink exception thrown if we try to set numberOfNodes to 1, so only apply if > 1
     if (_numNodes > 1) numberOfNodes = _numNodes
     // When running integration tests it doesn't forward the --debug-jvm to the cluster anymore
