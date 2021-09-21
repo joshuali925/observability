@@ -40,14 +40,14 @@ import java.io.IOException
 import java.nio.file.Path
 
 /**
- * settings specific to notebooks Plugin.
+ * settings specific to observability Plugin.
  */
 internal object PluginSettings {
 
     /**
      * Settings Key prefix for this plugin.
      */
-    private const val KEY_PREFIX = "opensearch.notebooks"
+    private const val KEY_PREFIX = "opensearch.observability"
 
     /**
      * General settings Key prefix.
@@ -266,7 +266,7 @@ internal object PluginSettings {
         var settings: Settings? = null
         val configDirName = BootstrapInfo.getSystemProperties()?.get("opensearch.path.conf")?.toString()
         if (configDirName != null) {
-            val defaultSettingYmlFile = Path.of(configDirName, PLUGIN_NAME, "notebooks.yml")
+            val defaultSettingYmlFile = Path.of(configDirName, PLUGIN_NAME, "observability.yml")
             try {
                 settings = Settings.builder().loadFromPath(defaultSettingYmlFile).build()
             } catch (exception: IOException) {
