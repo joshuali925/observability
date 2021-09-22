@@ -25,7 +25,7 @@
  *
  */
 
-package org.opensearch.observability.model
+package org.opensearch.observability.model.notebook
 
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.model.RestTag.ACCESS_LIST_FIELD

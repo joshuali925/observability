@@ -28,8 +28,8 @@
 package org.opensearch.observability.index
 
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
-import org.opensearch.observability.model.NotebookDetails
-import org.opensearch.observability.model.NotebookDetailsSearchResults
+import org.opensearch.observability.model.notebook.NotebookDetails
+import org.opensearch.observability.model.notebook.NotebookDetailsSearchResults
 import org.opensearch.observability.model.RestTag.ACCESS_LIST_FIELD
 import org.opensearch.observability.model.RestTag.TENANT_FIELD
 import org.opensearch.observability.model.RestTag.UPDATED_TIME_FIELD
@@ -120,7 +120,7 @@ internal object ObservabilityIndex {
      * @return notebook.id if successful, null otherwise
      * @throws java.util.concurrent.ExecutionException with a cause
      */
-    fun createNotebook(notebookDetails: NotebookDetails): String? {
+    fun createObservabilityObject(notebookDetails: NotebookDetails): String? {
         createIndex()
         val indexRequest = IndexRequest(OBSERVABILITY_INDEX_NAME)
             .source(notebookDetails.toXContent())

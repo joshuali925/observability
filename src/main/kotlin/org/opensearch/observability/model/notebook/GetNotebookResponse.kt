@@ -25,7 +25,7 @@
  *
  */
 
-package org.opensearch.observability.model
+package org.opensearch.observability.model.notebook
 
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.util.createJsonParser
@@ -38,6 +38,8 @@ import org.opensearch.common.xcontent.XContentFactory
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParser.Token
 import org.opensearch.common.xcontent.XContentParserUtils
+import org.opensearch.observability.model.BaseResponse
+import org.opensearch.observability.model.RestTag
 import java.io.IOException
 
 /**

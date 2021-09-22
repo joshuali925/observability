@@ -25,7 +25,7 @@
  *
  */
 
-package org.opensearch.observability.model
+package org.opensearch.observability.model.notebook
 
 import org.opensearch.index.seqno.SequenceNumbers
 

@@ -25,7 +25,7 @@
  *
  */
 
-package org.opensearch.observability.model
+package org.opensearch.observability.model.notebook
 
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.model.RestTag.NOTEBOOK_ID_FIELD
@@ -37,10 +37,11 @@ import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParser.Token
 import org.opensearch.common.xcontent.XContentParserUtils
+import org.opensearch.observability.model.BaseResponse
 import java.io.IOException
 
 /**
- * Notebook-delete response.
+ * Notebook-create response.
  * <pre> JSON format
  * {@code
  * {
@@ -48,7 +49,7 @@ import java.io.IOException
  * }
  * }</pre>
  */
-internal data class DeleteNotebookResponse(
+internal class CreateNotebookResponse(
     val notebookId: String
 ) : BaseResponse() {
 
@@ -58,14 +59,14 @@ internal data class DeleteNotebookResponse(
     )
 
     companion object {
-        private val log by logger(DeleteNotebookResponse::class.java)
+        private val log by logger(CreateNotebookResponse::class.java)
 
         /**
-         * Parse the data from parser and create [DeleteNotebookResponse] object
+         * Parse the data from parser and create [CreateNotebookResponse] object
          * @param parser data referenced at parser
-         * @return created [DeleteNotebookResponse] object
+         * @return created [CreateNotebookResponse] object
          */
-        fun parse(parser: XContentParser): DeleteNotebookResponse {
+        fun parse(parser: XContentParser): CreateNotebookResponse {
             var notebookId: String? = null
             XContentParserUtils.ensureExpectedToken(Token.START_OBJECT, parser.currentToken(), parser)
             while (Token.END_OBJECT != parser.nextToken()) {
@@ -80,7 +81,7 @@ internal data class DeleteNotebookResponse(
                 }
             }
             notebookId ?: throw IllegalArgumentException("$NOTEBOOK_ID_FIELD field absent")
-            return DeleteNotebookResponse(notebookId)
+            return CreateNotebookResponse(notebookId)
         }
     }
 

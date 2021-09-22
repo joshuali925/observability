@@ -25,7 +25,7 @@
  *
  */
 
-package org.opensearch.observability.model
+package org.opensearch.observability.model.notebook
 
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.util.logger
@@ -35,6 +35,7 @@ import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentFactory
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParserUtils
+import org.opensearch.observability.model.RestTag
 
 /**
  * Notebook main data class.

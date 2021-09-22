@@ -28,17 +28,15 @@
 package org.opensearch.observability.index
 
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
-import org.opensearch.observability.model.NotebookDetails
-import org.opensearch.observability.model.NotebookDetailsSearchResults
+import org.opensearch.observability.model.notebook.NotebookDetails
+import org.opensearch.observability.model.notebook.NotebookDetailsSearchResults
 import org.opensearch.observability.model.RestTag.ACCESS_LIST_FIELD
 import org.opensearch.observability.model.RestTag.TENANT_FIELD
 import org.opensearch.observability.model.RestTag.UPDATED_TIME_FIELD
 import org.opensearch.observability.settings.PluginSettings
 import org.opensearch.observability.util.SecureIndexClient
 import org.opensearch.observability.util.logger
-import org.opensearch.ResourceAlreadyExistsException
 import org.opensearch.action.DocWriteResponse
-import org.opensearch.action.admin.indices.create.CreateIndexRequest
 import org.opensearch.action.delete.DeleteRequest
 import org.opensearch.action.get.GetRequest
 import org.opensearch.action.index.IndexRequest
@@ -56,6 +54,7 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Class for doing OpenSearch index operation to maintain notebooks in cluster.
+ * This index is deprecated to .opensearch-observability, these operations are only for backwards compatibility.
  */
 internal object NotebooksIndex {
     private val log by logger(NotebooksIndex::class.java)
@@ -78,34 +77,6 @@ internal object NotebooksIndex {
     }
 
     /**
-     * Create index using the mapping and settings defined in resource
-     */
-    @Suppress("TooGenericExceptionCaught")
-    private fun createIndex() {
-        if (!isIndexExists()) {
-            val classLoader = NotebooksIndex::class.java.classLoader
-            val indexMappingSource = classLoader.getResource(NOTEBOOKS_MAPPING_FILE_NAME)?.readText()!!
-            val indexSettingsSource = classLoader.getResource(NOTEBOOKS_SETTINGS_FILE_NAME)?.readText()!!
-            val request = CreateIndexRequest(NOTEBOOKS_INDEX_NAME)
-                .mapping(MAPPING_TYPE, indexMappingSource, XContentType.YAML)
-                .settings(indexSettingsSource, XContentType.YAML)
-            try {
-                val actionFuture = client.admin().indices().create(request)
-                val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
-                if (response.isAcknowledged) {
-                    log.info("$LOG_PREFIX:Index $NOTEBOOKS_INDEX_NAME creation Acknowledged")
-                } else {
-                    throw IllegalStateException("$LOG_PREFIX:Index $NOTEBOOKS_INDEX_NAME creation not Acknowledged")
-                }
-            } catch (exception: Exception) {
-                if (exception !is ResourceAlreadyExistsException && exception.cause !is ResourceAlreadyExistsException) {
-                    throw exception
-                }
-            }
-        }
-    }
-
-    /**
      * Check if the index is created and available.
      * @return true if index is available, false otherwise
      */
@@ -121,7 +92,8 @@ internal object NotebooksIndex {
      * @throws java.util.concurrent.ExecutionException with a cause
      */
     fun createNotebook(notebookDetails: NotebookDetails): String? {
-        createIndex()
+        if (!isIndexExists())
+            throw IllegalStateException("$LOG_PREFIX:Index $NOTEBOOKS_INDEX_NAME does not exist, should use new index instead")
         val indexRequest = IndexRequest(NOTEBOOKS_INDEX_NAME)
             .source(notebookDetails.toXContent())
             .create(true)
@@ -141,7 +113,8 @@ internal object NotebooksIndex {
      * @return Notebook details on success, null otherwise
      */
     fun getNotebook(id: String): NotebookDetails? {
-        createIndex()
+        if (!isIndexExists())
+            throw IllegalStateException("$LOG_PREFIX:Index $NOTEBOOKS_INDEX_NAME does not exist, should use new index instead")
         val getRequest = GetRequest(NOTEBOOKS_INDEX_NAME).id(id)
         val actionFuture = client.get(getRequest)
         val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
@@ -149,9 +122,11 @@ internal object NotebooksIndex {
             log.warn("$LOG_PREFIX:getNotebook - $id not found; response:$response")
             null
         } else {
-            val parser = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY,
+            val parser = XContentType.JSON.xContent().createParser(
+                NamedXContentRegistry.EMPTY,
                 LoggingDeprecationHandler.INSTANCE,
-                response.sourceAsString)
+                response.sourceAsString
+            )
             parser.nextToken()
             NotebookDetails.parse(parser, id)
         }
@@ -166,7 +141,8 @@ internal object NotebooksIndex {
      * @return search result of Notebook details
      */
     fun getAllNotebooks(tenant: String, access: List<String>, from: Int, maxItems: Int): NotebookDetailsSearchResults {
-        createIndex()
+        if (!isIndexExists())
+            throw IllegalStateException("$LOG_PREFIX:Index $NOTEBOOKS_INDEX_NAME does not exist, should use new index instead")
         val sourceBuilder = SearchSourceBuilder()
             .timeout(TimeValue(PluginSettings.operationTimeoutMs, TimeUnit.MILLISECONDS))
             .sort(UPDATED_TIME_FIELD)
@@ -188,8 +164,10 @@ internal object NotebooksIndex {
         val actionFuture = client.search(searchRequest)
         val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
         val result = NotebookDetailsSearchResults(from.toLong(), response)
-        log.info("$LOG_PREFIX:getAllNotebooks from:$from, maxItems:$maxItems," +
-            " retCount:${result.objectList.size}, totalCount:${result.totalHits}")
+        log.info(
+            "$LOG_PREFIX:getAllNotebooks from:$from, maxItems:$maxItems," +
+                " retCount:${result.objectList.size}, totalCount:${result.totalHits}"
+        )
         return result
     }
 
@@ -200,7 +178,8 @@ internal object NotebooksIndex {
      * @return true if successful, false otherwise
      */
     fun updateNotebook(id: String, notebookDetails: NotebookDetails): Boolean {
-        createIndex()
+        if (!isIndexExists())
+            throw IllegalStateException("$LOG_PREFIX:Index $NOTEBOOKS_INDEX_NAME does not exist, should use new index instead")
         val updateRequest = UpdateRequest()
             .index(NOTEBOOKS_INDEX_NAME)
             .id(id)
@@ -220,7 +199,8 @@ internal object NotebooksIndex {
      * @return true if successful, false otherwise
      */
     fun deleteNotebook(id: String): Boolean {
-        createIndex()
+        if (!isIndexExists())
+            throw IllegalStateException("$LOG_PREFIX:Index $NOTEBOOKS_INDEX_NAME does not exist, should use new index instead")
         val deleteRequest = DeleteRequest()
             .index(NOTEBOOKS_INDEX_NAME)
             .id(id)

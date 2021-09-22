@@ -25,7 +25,7 @@
  *
  */
 
-package org.opensearch.observability.model
+package org.opensearch.observability.model.notebook
 
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.model.RestTag.NOTEBOOK_ID_FIELD
@@ -37,10 +37,11 @@ import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParser.Token
 import org.opensearch.common.xcontent.XContentParserUtils
+import org.opensearch.observability.model.BaseResponse
 import java.io.IOException
 
 /**
- * Notebook-create response.
+ * Notebook-update response.
  * <pre> JSON format
  * {@code
  * {
@@ -48,8 +49,8 @@ import java.io.IOException
  * }
  * }</pre>
  */
-internal class CreateNotebookResponse(
-    val notebookId: String
+internal class UpdateNotebookResponse(
+    val notebookId: String?
 ) : BaseResponse() {
 
     @Throws(IOException::class)
@@ -58,14 +59,14 @@ internal class CreateNotebookResponse(
     )
 
     companion object {
-        private val log by logger(CreateNotebookResponse::class.java)
+        private val log by logger(UpdateNotebookResponse::class.java)
 
         /**
-         * Parse the data from parser and create [CreateNotebookResponse] object
+         * Parse the data from parser and create [UpdateNotebookResponse] object
          * @param parser data referenced at parser
-         * @return created [CreateNotebookResponse] object
+         * @return created [UpdateNotebookResponse] object
          */
-        fun parse(parser: XContentParser): CreateNotebookResponse {
+        fun parse(parser: XContentParser): UpdateNotebookResponse {
             var notebookId: String? = null
             XContentParserUtils.ensureExpectedToken(Token.START_OBJECT, parser.currentToken(), parser)
             while (Token.END_OBJECT != parser.nextToken()) {
@@ -80,7 +81,7 @@ internal class CreateNotebookResponse(
                 }
             }
             notebookId ?: throw IllegalArgumentException("$NOTEBOOK_ID_FIELD field absent")
-            return CreateNotebookResponse(notebookId)
+            return UpdateNotebookResponse(notebookId)
         }
     }
 

@@ -25,11 +25,12 @@
  *
  */
 
-package org.opensearch.observability.model
+package org.opensearch.observability.model.notebook
 
 import org.opensearch.observability.model.RestTag.NOTEBOOK_LIST_FIELD
 import org.opensearch.action.search.SearchResponse
 import org.opensearch.common.xcontent.XContentParser
+import org.opensearch.observability.model.SearchResults
 
 /**
  * Notebooks search results

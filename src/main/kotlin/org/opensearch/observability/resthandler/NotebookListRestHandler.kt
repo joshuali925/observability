@@ -29,7 +29,7 @@ package org.opensearch.observability.resthandler
 import org.opensearch.observability.ObservabilityPlugin.Companion.BASE_NOTEBOOKS_URI
 import org.opensearch.observability.action.GetAllNotebooksAction
 import org.opensearch.observability.action.NotebookActions
-import org.opensearch.observability.model.GetAllNotebooksRequest
+import org.opensearch.observability.model.notebook.GetAllNotebooksRequest
 import org.opensearch.observability.model.RestTag.FROM_INDEX_FIELD
 import org.opensearch.observability.model.RestTag.MAX_ITEMS_FIELD
 import org.opensearch.observability.settings.PluginSettings

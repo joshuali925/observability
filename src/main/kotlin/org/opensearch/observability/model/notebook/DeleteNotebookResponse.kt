@@ -25,27 +25,23 @@
  *
  */
 
-package org.opensearch.observability.model
+package org.opensearch.observability.model.notebook
 
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.model.RestTag.NOTEBOOK_ID_FIELD
 import org.opensearch.observability.util.logger
-import org.opensearch.action.ActionRequest
-import org.opensearch.action.ActionRequestValidationException
 import org.opensearch.common.io.stream.StreamInput
 import org.opensearch.common.io.stream.StreamOutput
 import org.opensearch.common.xcontent.ToXContent
-import org.opensearch.common.xcontent.ToXContentObject
 import org.opensearch.common.xcontent.XContentBuilder
-import org.opensearch.common.xcontent.XContentFactory
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParser.Token
 import org.opensearch.common.xcontent.XContentParserUtils
+import org.opensearch.observability.model.BaseResponse
 import java.io.IOException
 
 /**
- * Notebook-get request.
- * notebookId is from request query params
+ * Notebook-delete response.
  * <pre> JSON format
  * {@code
  * {
@@ -53,9 +49,9 @@ import java.io.IOException
  * }
  * }</pre>
  */
-internal class GetNotebookRequest(
+internal data class DeleteNotebookResponse(
     val notebookId: String
-) : ActionRequest(), ToXContentObject {
+) : BaseResponse() {
 
     @Throws(IOException::class)
     constructor(input: StreamInput) : this(
@@ -63,16 +59,15 @@ internal class GetNotebookRequest(
     )
 
     companion object {
-        private val log by logger(GetNotebookRequest::class.java)
+        private val log by logger(DeleteNotebookResponse::class.java)
 
         /**
-         * Parse the data from parser and create [GetNotebookRequest] object
+         * Parse the data from parser and create [DeleteNotebookResponse] object
          * @param parser data referenced at parser
-         * @param useNotebookId use this id if not available in the json
-         * @return created [GetNotebookRequest] object
+         * @return created [DeleteNotebookResponse] object
          */
-        fun parse(parser: XContentParser, useNotebookId: String? = null): GetNotebookRequest {
-            var notebookId: String? = useNotebookId
+        fun parse(parser: XContentParser): DeleteNotebookResponse {
+            var notebookId: String? = null
             XContentParserUtils.ensureExpectedToken(Token.START_OBJECT, parser.currentToken(), parser)
             while (Token.END_OBJECT != parser.nextToken()) {
                 val fieldName = parser.currentName()
@@ -86,7 +81,7 @@ internal class GetNotebookRequest(
                 }
             }
             notebookId ?: throw IllegalArgumentException("$NOTEBOOK_ID_FIELD field absent")
-            return GetNotebookRequest(notebookId)
+            return DeleteNotebookResponse(notebookId)
         }
     }
 
@@ -99,27 +94,11 @@ internal class GetNotebookRequest(
     }
 
     /**
-     * create XContentBuilder from this object using [XContentFactory.jsonBuilder()]
-     * @param params XContent parameters
-     * @return created XContentBuilder object
-     */
-    fun toXContent(params: ToXContent.Params = ToXContent.EMPTY_PARAMS): XContentBuilder? {
-        return toXContent(XContentFactory.jsonBuilder(), params)
-    }
-
-    /**
      * {@inheritDoc}
      */
     override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
         return builder!!.startObject()
             .field(NOTEBOOK_ID_FIELD, notebookId)
             .endObject()
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    override fun validate(): ActionRequestValidationException? {
-        return null
     }
 }

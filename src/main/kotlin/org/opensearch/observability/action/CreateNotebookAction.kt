@@ -28,8 +28,8 @@
 package org.opensearch.observability.action
 
 import org.opensearch.commons.authuser.User
-import org.opensearch.observability.model.CreateNotebookRequest
-import org.opensearch.observability.model.CreateNotebookResponse
+import org.opensearch.observability.model.notebook.CreateNotebookRequest
+import org.opensearch.observability.model.notebook.CreateNotebookResponse
 import org.opensearch.action.ActionType
 import org.opensearch.action.support.ActionFilters
 import org.opensearch.client.Client

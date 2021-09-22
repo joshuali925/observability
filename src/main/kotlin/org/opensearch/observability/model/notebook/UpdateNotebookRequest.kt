@@ -25,10 +25,11 @@
  *
  */
 
-package org.opensearch.observability.model
+package org.opensearch.observability.model.notebook
 
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.model.RestTag.NOTEBOOK_FIELD
+import org.opensearch.observability.model.RestTag.NOTEBOOK_ID_FIELD
 import org.opensearch.observability.util.createJsonParser
 import org.opensearch.observability.util.logger
 import org.opensearch.action.ActionRequest
@@ -45,24 +46,28 @@ import org.opensearch.common.xcontent.XContentParserUtils
 import java.io.IOException
 
 /**
- * Notebook-create request.
+ * Notebook-update request.
+ * notebookId is from request query params
  * <pre> JSON format
  * {@code
  * {
+ *   "notebookId":"notebookId",
  *   "notebook":{
  *      // refer [org.opensearch.notebooks.model.Notebook]
  *   }
  * }
  * }</pre>
  */
-internal class CreateNotebookRequest : ActionRequest, ToXContentObject {
+internal class UpdateNotebookRequest : ActionRequest, ToXContentObject {
+    val notebookId: String
     val notebook: Notebook
 
     companion object {
         private val log by logger(CreateNotebookRequest::class.java)
     }
 
-    constructor(notebook: Notebook) : super() {
+    constructor(notebookId: String, notebook: Notebook) : super() {
+        this.notebookId = notebookId
         this.notebook = notebook
     }
 
@@ -70,16 +75,18 @@ internal class CreateNotebookRequest : ActionRequest, ToXContentObject {
     constructor(input: StreamInput) : this(input.createJsonParser())
 
     /**
-     * Parse the data from parser and create [GetAllNotebooksResponse] object
+     * Parse the data from parser and create [UpdateNotebookRequest] object
      * @param parser data referenced at parser
      */
-    constructor(parser: XContentParser) : super() {
+    constructor(parser: XContentParser, useNotebookId: String? = null) : super() {
+        var notebookId: String? = useNotebookId
         var notebook: Notebook? = null
         XContentParserUtils.ensureExpectedToken(Token.START_OBJECT, parser.currentToken(), parser)
         while (Token.END_OBJECT != parser.nextToken()) {
             val fieldName = parser.currentName()
             parser.nextToken()
             when (fieldName) {
+                NOTEBOOK_ID_FIELD -> notebookId = parser.text()
                 NOTEBOOK_FIELD -> notebook = Notebook.parse(parser)
                 else -> {
                     parser.skipChildren()
@@ -87,7 +94,9 @@ internal class CreateNotebookRequest : ActionRequest, ToXContentObject {
                 }
             }
         }
+        notebookId ?: throw IllegalArgumentException("$NOTEBOOK_ID_FIELD field absent")
         notebook ?: throw IllegalArgumentException("$NOTEBOOK_FIELD field absent")
+        this.notebookId = notebookId
         this.notebook = notebook
     }
 
@@ -113,6 +122,7 @@ internal class CreateNotebookRequest : ActionRequest, ToXContentObject {
      */
     override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
         return builder!!.startObject()
+            .field(NOTEBOOK_ID_FIELD, notebookId)
             .field(NOTEBOOK_FIELD, notebook)
             .endObject()
     }

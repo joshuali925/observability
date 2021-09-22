@@ -25,62 +25,74 @@
  *
  */
 
-package org.opensearch.observability.model
+package org.opensearch.observability.model.notebook
 
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
-import org.opensearch.observability.model.RestTag.NOTEBOOK_ID_FIELD
+import org.opensearch.observability.model.RestTag.FROM_INDEX_FIELD
+import org.opensearch.observability.model.RestTag.MAX_ITEMS_FIELD
+import org.opensearch.observability.settings.PluginSettings
 import org.opensearch.observability.util.logger
+import org.opensearch.action.ActionRequest
+import org.opensearch.action.ActionRequestValidationException
 import org.opensearch.common.io.stream.StreamInput
 import org.opensearch.common.io.stream.StreamOutput
 import org.opensearch.common.xcontent.ToXContent
+import org.opensearch.common.xcontent.ToXContentObject
 import org.opensearch.common.xcontent.XContentBuilder
+import org.opensearch.common.xcontent.XContentFactory
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParser.Token
 import org.opensearch.common.xcontent.XContentParserUtils
+import org.opensearch.search.sort.SortOrder
 import java.io.IOException
 
 /**
- * Notebook-update response.
+ * Get All notebooks info request
+ * Data object created from GET request query params
  * <pre> JSON format
  * {@code
  * {
- *   "notebookId":"notebookId"
+ *   "fromIndex":100,
+ *   "maxItems":100
  * }
  * }</pre>
  */
-internal class UpdateNotebookResponse(
-    val notebookId: String?
-) : BaseResponse() {
+internal class GetAllNotebooksRequest(
+    val fromIndex: Int,
+    val maxItems: Int
+) : ActionRequest(), ToXContentObject {
 
     @Throws(IOException::class)
     constructor(input: StreamInput) : this(
-        notebookId = input.readString()
+        fromIndex = input.readInt(),
+        maxItems = input.readInt()
     )
 
     companion object {
-        private val log by logger(UpdateNotebookResponse::class.java)
+        private val log by logger(GetAllNotebooksRequest::class.java)
 
         /**
-         * Parse the data from parser and create [UpdateNotebookResponse] object
+         * Parse the data from parser and create [GetAllNotebooksRequest] object
          * @param parser data referenced at parser
-         * @return created [UpdateNotebookResponse] object
+         * @return created [GetAllNotebooksRequest] object
          */
-        fun parse(parser: XContentParser): UpdateNotebookResponse {
-            var notebookId: String? = null
+        fun parse(parser: XContentParser): GetAllNotebooksRequest {
+            var fromIndex = 0
+            var maxItems = PluginSettings.defaultItemsQueryCount
             XContentParserUtils.ensureExpectedToken(Token.START_OBJECT, parser.currentToken(), parser)
             while (Token.END_OBJECT != parser.nextToken()) {
                 val fieldName = parser.currentName()
                 parser.nextToken()
                 when (fieldName) {
-                    NOTEBOOK_ID_FIELD -> notebookId = parser.text()
+                    FROM_INDEX_FIELD -> fromIndex = parser.intValue()
+                    MAX_ITEMS_FIELD -> maxItems = parser.intValue()
                     else -> {
                         parser.skipChildren()
                         log.info("$LOG_PREFIX:Skipping Unknown field $fieldName")
                     }
                 }
             }
-            notebookId ?: throw IllegalArgumentException("$NOTEBOOK_ID_FIELD field absent")
-            return UpdateNotebookResponse(notebookId)
+            return GetAllNotebooksRequest(fromIndex, maxItems)
         }
     }
 
@@ -89,7 +101,30 @@ internal class UpdateNotebookResponse(
      */
     @Throws(IOException::class)
     override fun writeTo(output: StreamOutput) {
-        output.writeString(notebookId)
+        output.writeInt(fromIndex)
+        output.writeInt(maxItems)
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    override fun validate(): ActionRequestValidationException? {
+        return if (fromIndex < 0) {
+            val exception = ActionRequestValidationException()
+            exception.addValidationError("fromIndex should be grater than 0")
+            exception
+        } else {
+            null
+        }
+    }
+
+    /**
+     * create XContentBuilder from this object using [XContentFactory.jsonBuilder()]
+     * @param params XContent parameters
+     * @return created XContentBuilder object
+     */
+    fun toXContent(params: ToXContent.Params = ToXContent.EMPTY_PARAMS): XContentBuilder? {
+        return toXContent(XContentFactory.jsonBuilder(), params)
     }
 
     /**
@@ -97,7 +132,8 @@ internal class UpdateNotebookResponse(
      */
     override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
         return builder!!.startObject()
-            .field(NOTEBOOK_ID_FIELD, notebookId)
+            .field(FROM_INDEX_FIELD, fromIndex)
+            .field(MAX_ITEMS_FIELD, maxItems)
             .endObject()
     }
 }
