@@ -36,7 +36,7 @@ internal class ObservabilityQueryHelper(val keyPrefix: ObservabilityObjectType) 
         // keyword and text fields are under observability object and should be prepended with keyPrefix
         private val KEYWORD_FIELDS: Set<String> = setOf()
         private val TEXT_FIELDS = setOf(
-            NAME_FIELD,
+            NAME_FIELD
         )
 
         private val METADATA_FIELDS = METADATA_RANGE_FIELDS

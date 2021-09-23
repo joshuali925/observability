@@ -44,6 +44,7 @@ import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentFactory
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParserUtils
+import org.opensearch.observability.model.RestTag.TYPE_FIELD
 import java.time.Instant
 
 /**
@@ -97,6 +98,7 @@ internal data class NotebookDetails(
                     TENANT_FIELD -> tenant = parser.text()
                     ACCESS_LIST_FIELD -> access = parser.stringList()
                     NOTEBOOK_FIELD -> notebook = Notebook.parse(parser)
+                    TYPE_FIELD -> continue // type is for searching only, ignore in response
                     else -> {
                         parser.skipChildren()
                         log.info("$LOG_PREFIX:NotebookDetails Skipping Unknown field $fieldName")
@@ -134,6 +136,7 @@ internal data class NotebookDetails(
     override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
         builder!!
         builder.startObject()
+            .field(TYPE_FIELD, NOTEBOOK_FIELD)
         if (params?.paramAsBoolean(ID_FIELD, false) == true) {
             builder.field(ID_FIELD, id)
         }
