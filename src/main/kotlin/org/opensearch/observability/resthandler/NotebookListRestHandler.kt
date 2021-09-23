@@ -34,6 +34,10 @@ import org.opensearch.observability.model.RestTag.FROM_INDEX_FIELD
 import org.opensearch.observability.model.RestTag.MAX_ITEMS_FIELD
 import org.opensearch.observability.settings.PluginSettings
 import org.opensearch.client.node.NodeClient
+import org.opensearch.observability.index.ObservabilityQueryHelper
+import org.opensearch.observability.model.RestTag.OBJECT_ID_LIST_FIELD
+import org.opensearch.observability.model.RestTag.SORT_FIELD_FIELD
+import org.opensearch.observability.model.RestTag.SORT_ORDER_FIELD
 import org.opensearch.rest.BaseRestHandler
 import org.opensearch.rest.BaseRestHandler.RestChannelConsumer
 import org.opensearch.rest.BytesRestResponse
@@ -41,6 +45,7 @@ import org.opensearch.rest.RestHandler.Route
 import org.opensearch.rest.RestRequest
 import org.opensearch.rest.RestRequest.Method.GET
 import org.opensearch.rest.RestStatus
+import org.opensearch.search.sort.SortOrder
 
 /**
  * Rest handler for getting list of notebooks.
@@ -78,18 +83,47 @@ internal class NotebookListRestHandler : BaseRestHandler() {
      * {@inheritDoc}
      */
     override fun prepareRequest(request: RestRequest, client: NodeClient): RestChannelConsumer {
-        val from = request.param(FROM_INDEX_FIELD)?.toIntOrNull() ?: 0
+        val objectIdList: String? = request.param(OBJECT_ID_LIST_FIELD)
+        val sortField: String? = request.param(SORT_FIELD_FIELD)
+        val sortOrderString: String? = request.param(SORT_ORDER_FIELD)
+        val sortOrder: SortOrder? = if (sortOrderString == null) {
+            null
+        } else {
+            SortOrder.fromString(sortOrderString)
+        }
+        val fromIndex = request.param(FROM_INDEX_FIELD)?.toIntOrNull() ?: 0
         val maxItems = request.param(MAX_ITEMS_FIELD)?.toIntOrNull() ?: PluginSettings.defaultItemsQueryCount
+        val filterParams = request.params()
+            .filter { ObservabilityQueryHelper.FILTER_PARAMS.contains(it.key) }
+            .map { Pair(it.key, request.param(it.key)) }
+            .toMap()
         return when (request.method()) {
             GET -> RestChannelConsumer {
-                client.execute(GetAllNotebooksAction.ACTION_TYPE,
-                    GetAllNotebooksRequest(from, maxItems),
-                    RestResponseToXContentListener(it))
+                client.execute(
+                    GetAllNotebooksAction.ACTION_TYPE,
+                    GetAllNotebooksRequest(
+                        getObjectIdSet(objectIdList),
+                        fromIndex,
+                        maxItems,
+                        sortField,
+                        sortOrder,
+                        filterParams
+                    ),
+                    RestResponseToXContentListener(it)
+                )
             }
             else -> RestChannelConsumer {
                 it.sendResponse(BytesRestResponse(RestStatus.METHOD_NOT_ALLOWED, "${request.method()} is not allowed"))
             }
         }
+    }
+
+    private fun getObjectIdSet(objectIdList: String?): Set<String> {
+        var retIds: Set<String> = setOf()
+        if (objectIdList != null) {
+            retIds = objectIdList.split(",").union(retIds)
+        }
+        return retIds
     }
 
     /**

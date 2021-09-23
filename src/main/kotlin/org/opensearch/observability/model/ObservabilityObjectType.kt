@@ -12,6 +12,7 @@
 package org.opensearch.observability.model
 
 import org.opensearch.commons.utils.EnumParser
+import org.opensearch.observability.model.RestTag.NOTEBOOK_FIELD
 
 /**
  * Enum for Notification config type
@@ -22,7 +23,7 @@ enum class ObservabilityObjectType(val tag: String) {
             return tag
         }
     },
-    NOTEBOOK("notebook") {
+    NOTEBOOK(NOTEBOOK_FIELD) {
         override fun toString(): String {
             return tag
         }
@@ -36,7 +37,7 @@ enum class ObservabilityObjectType(val tag: String) {
         override fun toString(): String {
             return tag
         }
-    } ;
+    };
 
     companion object {
         private val tagMap = values().associateBy { it.tag }
@@ -53,4 +54,3 @@ enum class ObservabilityObjectType(val tag: String) {
         }
     }
 }
-

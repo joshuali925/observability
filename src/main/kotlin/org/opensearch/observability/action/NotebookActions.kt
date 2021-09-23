@@ -175,8 +175,7 @@ internal object NotebookActions {
         val notebooksList = NotebooksIndex.getAllNotebooks(
             UserAccessManager.getUserTenant(user),
             UserAccessManager.getSearchAccessInfo(user),
-            request.fromIndex,
-            request.maxItems
+            request
         )
         return GetAllNotebooksResponse(notebooksList, UserAccessManager.hasAllInfoAccess(user))
     }

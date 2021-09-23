@@ -27,16 +27,9 @@
 
 package org.opensearch.observability.index
 
-import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
-import org.opensearch.observability.model.notebook.NotebookDetails
-import org.opensearch.observability.model.notebook.NotebookDetailsSearchResults
-import org.opensearch.observability.model.RestTag.ACCESS_LIST_FIELD
-import org.opensearch.observability.model.RestTag.TENANT_FIELD
-import org.opensearch.observability.model.RestTag.UPDATED_TIME_FIELD
-import org.opensearch.observability.settings.PluginSettings
-import org.opensearch.observability.util.SecureIndexClient
-import org.opensearch.observability.util.logger
+import org.opensearch.ResourceAlreadyExistsException
 import org.opensearch.action.DocWriteResponse
+import org.opensearch.action.admin.indices.create.CreateIndexRequest
 import org.opensearch.action.delete.DeleteRequest
 import org.opensearch.action.get.GetRequest
 import org.opensearch.action.index.IndexRequest
@@ -49,18 +42,29 @@ import org.opensearch.common.xcontent.LoggingDeprecationHandler
 import org.opensearch.common.xcontent.NamedXContentRegistry
 import org.opensearch.common.xcontent.XContentType
 import org.opensearch.index.query.QueryBuilders
+import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
+import org.opensearch.observability.model.ObservabilityObjectType
+import org.opensearch.observability.model.RestTag.ACCESS_LIST_FIELD
+import org.opensearch.observability.model.RestTag.TENANT_FIELD
+import org.opensearch.observability.model.RestTag.TYPE_FIELD
+import org.opensearch.observability.model.notebook.GetAllNotebooksRequest
+import org.opensearch.observability.model.notebook.NotebookDetails
+import org.opensearch.observability.model.notebook.NotebookDetailsSearchResults
+import org.opensearch.observability.settings.PluginSettings
+import org.opensearch.observability.util.SecureIndexClient
+import org.opensearch.observability.util.logger
 import org.opensearch.search.builder.SearchSourceBuilder
+import org.opensearch.search.sort.SortOrder
 import java.util.concurrent.TimeUnit
 
 /**
  * Class for doing OpenSearch index operation to maintain notebooks in cluster.
- * This index is deprecated to .opensearch-observability, these operations are only for backwards compatibility.
  */
 internal object NotebooksIndex {
     private val log by logger(NotebooksIndex::class.java)
-    const val NOTEBOOKS_INDEX_NAME = ".opensearch-notebooks"
-    private const val NOTEBOOKS_MAPPING_FILE_NAME = "notebooks-mapping.yml"
-    private const val NOTEBOOKS_SETTINGS_FILE_NAME = "notebooks-settings.yml"
+    const val OBSERVABILITY_INDEX_NAME = ".opensearch-observability"
+    private const val OBSERVABILITY_MAPPING_FILE_NAME = "observability-mapping.yml"
+    private const val OBSERVABILITY_SETTINGS_FILE_NAME = "observability-settings.yml"
     private const val MAPPING_TYPE = "_doc"
 
     private lateinit var client: Client
@@ -77,12 +81,40 @@ internal object NotebooksIndex {
     }
 
     /**
+     * Create index using the mapping and settings defined in resource
+     */
+    @Suppress("TooGenericExceptionCaught")
+    private fun createIndex() {
+        if (!isIndexExists()) {
+            val classLoader = NotebooksIndex::class.java.classLoader
+            val indexMappingSource = classLoader.getResource(OBSERVABILITY_MAPPING_FILE_NAME)?.readText()!!
+            val indexSettingsSource = classLoader.getResource(OBSERVABILITY_SETTINGS_FILE_NAME)?.readText()!!
+            val request = CreateIndexRequest(OBSERVABILITY_INDEX_NAME)
+                .mapping(MAPPING_TYPE, indexMappingSource, XContentType.YAML)
+                .settings(indexSettingsSource, XContentType.YAML)
+            try {
+                val actionFuture = client.admin().indices().create(request)
+                val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
+                if (response.isAcknowledged) {
+                    log.info("$LOG_PREFIX:Index $OBSERVABILITY_INDEX_NAME creation Acknowledged")
+                } else {
+                    throw IllegalStateException("$LOG_PREFIX:Index $OBSERVABILITY_INDEX_NAME creation not Acknowledged")
+                }
+            } catch (exception: Exception) {
+                if (exception !is ResourceAlreadyExistsException && exception.cause !is ResourceAlreadyExistsException) {
+                    throw exception
+                }
+            }
+        }
+    }
+
+    /**
      * Check if the index is created and available.
      * @return true if index is available, false otherwise
      */
     private fun isIndexExists(): Boolean {
         val clusterState = clusterService.state()
-        return clusterState.routingTable.hasIndex(NOTEBOOKS_INDEX_NAME)
+        return clusterState.routingTable.hasIndex(OBSERVABILITY_INDEX_NAME)
     }
 
     /**
@@ -92,9 +124,8 @@ internal object NotebooksIndex {
      * @throws java.util.concurrent.ExecutionException with a cause
      */
     fun createNotebook(notebookDetails: NotebookDetails): String? {
-        if (!isIndexExists())
-            throw IllegalStateException("$LOG_PREFIX:Index $NOTEBOOKS_INDEX_NAME does not exist, should use new index instead")
-        val indexRequest = IndexRequest(NOTEBOOKS_INDEX_NAME)
+        createIndex()
+        val indexRequest = IndexRequest(OBSERVABILITY_INDEX_NAME)
             .source(notebookDetails.toXContent())
             .create(true)
         val actionFuture = client.index(indexRequest)
@@ -113,9 +144,8 @@ internal object NotebooksIndex {
      * @return Notebook details on success, null otherwise
      */
     fun getNotebook(id: String): NotebookDetails? {
-        if (!isIndexExists())
-            throw IllegalStateException("$LOG_PREFIX:Index $NOTEBOOKS_INDEX_NAME does not exist, should use new index instead")
-        val getRequest = GetRequest(NOTEBOOKS_INDEX_NAME).id(id)
+        createIndex()
+        val getRequest = GetRequest(OBSERVABILITY_INDEX_NAME).id(id)
         val actionFuture = client.get(getRequest)
         val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
         return if (response.sourceAsString == null) {
@@ -140,33 +170,40 @@ internal object NotebooksIndex {
      * @param maxItems the max items to query
      * @return search result of Notebook details
      */
-    fun getAllNotebooks(tenant: String, access: List<String>, from: Int, maxItems: Int): NotebookDetailsSearchResults {
-        if (!isIndexExists())
-            throw IllegalStateException("$LOG_PREFIX:Index $NOTEBOOKS_INDEX_NAME does not exist, should use new index instead")
+    fun getAllNotebooks(
+        tenant: String,
+        access: List<String>,
+        request: GetAllNotebooksRequest
+    ): NotebookDetailsSearchResults {
+        createIndex()
+        val queryHelper = ObservabilityQueryHelper(ObservabilityObjectType.NOTEBOOK)
         val sourceBuilder = SearchSourceBuilder()
             .timeout(TimeValue(PluginSettings.operationTimeoutMs, TimeUnit.MILLISECONDS))
-            .sort(UPDATED_TIME_FIELD)
-            .size(maxItems)
-            .from(from)
-        val tenantQuery = QueryBuilders.termsQuery(TENANT_FIELD, tenant)
+            .sort(queryHelper.getSortField(request.sortField), request.sortOrder ?: SortOrder.ASC)
+            .size(request.maxItems)
+            .from(request.fromIndex)
+        val query = QueryBuilders.boolQuery()
+        query.filter(QueryBuilders.termsQuery(TENANT_FIELD, tenant))
+        query.filter(QueryBuilders.termsQuery(TYPE_FIELD, ObservabilityObjectType.NOTEBOOK))
         if (access.isNotEmpty()) {
-            val accessQuery = QueryBuilders.termsQuery(ACCESS_LIST_FIELD, access)
-            val query = QueryBuilders.boolQuery()
-            query.filter(tenantQuery)
-            query.filter(accessQuery)
-            sourceBuilder.query(query)
-        } else {
-            sourceBuilder.query(tenantQuery)
+            query.filter(QueryBuilders.termsQuery(ACCESS_LIST_FIELD, access))
         }
+        queryHelper.addQueryFilters(query, request.filterParams)
+        println("debughere")
+        println("query:")
+        println(query)
+        sourceBuilder.query(query)
         val searchRequest = SearchRequest()
-            .indices(NOTEBOOKS_INDEX_NAME)
+            .indices(OBSERVABILITY_INDEX_NAME)
             .source(sourceBuilder)
         val actionFuture = client.search(searchRequest)
         val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
-        val result = NotebookDetailsSearchResults(from.toLong(), response)
+        val result = NotebookDetailsSearchResults(request.fromIndex.toLong(), response)
         log.info(
-            "$LOG_PREFIX:getAllNotebooks from:$from, maxItems:$maxItems," +
-                " retCount:${result.objectList.size}, totalCount:${result.totalHits}"
+            "$LOG_PREFIX:getAllNotebooks from:${request.fromIndex}, maxItems:${request.maxItems}, " +
+                "sortField:${request.sortField}, sortOrder:${request.sortOrder}, " +
+                "filterParams:${request.filterParams}, objectIdList:${request.objectIds}, " +
+                "retCount:${result.objectList.size}, totalCount:${result.totalHits}"
         )
         return result
     }
@@ -178,10 +215,9 @@ internal object NotebooksIndex {
      * @return true if successful, false otherwise
      */
     fun updateNotebook(id: String, notebookDetails: NotebookDetails): Boolean {
-        if (!isIndexExists())
-            throw IllegalStateException("$LOG_PREFIX:Index $NOTEBOOKS_INDEX_NAME does not exist, should use new index instead")
+        createIndex()
         val updateRequest = UpdateRequest()
-            .index(NOTEBOOKS_INDEX_NAME)
+            .index(OBSERVABILITY_INDEX_NAME)
             .id(id)
             .doc(notebookDetails.toXContent())
             .fetchSource(true)
@@ -199,10 +235,9 @@ internal object NotebooksIndex {
      * @return true if successful, false otherwise
      */
     fun deleteNotebook(id: String): Boolean {
-        if (!isIndexExists())
-            throw IllegalStateException("$LOG_PREFIX:Index $NOTEBOOKS_INDEX_NAME does not exist, should use new index instead")
+        createIndex()
         val deleteRequest = DeleteRequest()
-            .index(NOTEBOOKS_INDEX_NAME)
+            .index(OBSERVABILITY_INDEX_NAME)
             .id(id)
         val actionFuture = client.delete(deleteRequest)
         val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)

@@ -46,10 +46,13 @@ properties:
     type: keyword
   notebook:
     type: object
-    enabled: false
+    properties:
+      name:
+        type: text
+        fields:
+          keyword:
+            type: keyword
   saved_query:
     type: object
-    enabled: false
   operational_panel:
     type: object
-    enabled: false
