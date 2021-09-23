@@ -27,7 +27,7 @@
 ##
 
 # configuration file for the observability plugin
-opensearch.observability:
+opensearch.notebooks:
   general:
     operationTimeoutMs: 60000 # 60 seconds, Minimum 100ms
     defaultItemsQueryCount: 100 # default number of items to query
@@ -37,14 +37,14 @@ opensearch.observability:
     maxPollingDurationSeconds: 900 # 15 Minutes, Minimum 5 Minutes
     maxLockRetries: 1 # Max number of retries to retry locking
   access:
-    adminAccess: "AllObservability"
+    adminAccess: "AllNotebooks"
     # adminAccess values:
     ## Standard -> Admin user access follows standard user
-    ## AllObservability -> Admin user with "all_access" role can see all observability objects of all users.
+    ## AllNotebooks -> Admin user with "all_access" role can see all observability objects of all users.
     filterBy: "NoFilter" # Applied when tenant != __user__
     # filterBy values:
     ## NoFilter -> everyone see each other's observability objects
     ## User -> observability objects are visible to only themselves
     ## Roles -> observability objects are visible to users having any one of the role of creator
     ## BackendRoles -> observability objects are visible to users having any one of the backend role of creator
-    ignoreRoles: ["own_index", "kibana_user", "observability_full_access", "observability_read_access"]
+    ignoreRoles: ["own_index", "kibana_user", "notebooks_full_access", "notebooks_read_access"]
