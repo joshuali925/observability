@@ -27,6 +27,8 @@
 
 package org.opensearch.observability.model.notebook
 
+import org.opensearch.common.io.stream.StreamOutput
+import org.opensearch.common.io.stream.Writeable
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.util.logger
 import org.opensearch.common.xcontent.ToXContent
@@ -35,6 +37,9 @@ import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentFactory
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParserUtils
+import org.opensearch.commons.notifications.model.Chime
+import org.opensearch.commons.notifications.model.XParser
+import org.opensearch.observability.model.BaseObjectData
 import org.opensearch.observability.model.RestTag
 
 /**
@@ -74,7 +79,7 @@ internal data class Notebook(
     val dateModified: String?,
     val backend: String?,
     val paragraphs: List<Paragraph>?
-) : ToXContentObject {
+) : BaseObjectData {
 
     internal companion object {
         private val log by logger(Notebook::class.java)
@@ -83,6 +88,11 @@ internal data class Notebook(
         private const val DATE_MODIFIED_TAG = "dateModified"
         private const val BACKEND_TAG = "backend"
         private const val PARAGRAPHS_TAG = "paragraphs"
+
+        /**
+         * Parser to parse xContent
+         */
+        val xParser = XParser { parse(it) }
 
         /**
          * Parse the item list from parser
@@ -142,6 +152,10 @@ internal data class Notebook(
      */
     fun toXContent(params: ToXContent.Params = ToXContent.EMPTY_PARAMS): XContentBuilder? {
         return toXContent(XContentFactory.jsonBuilder(), params)
+    }
+
+    override fun writeTo(out: StreamOutput?) {
+        TODO("Not yet implemented")
     }
 
     /**

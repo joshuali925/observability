@@ -11,7 +11,6 @@
 
 package org.opensearch.observability.model
 
-import org.opensearch.common.Strings
 import org.opensearch.common.io.stream.StreamInput
 import org.opensearch.common.io.stream.StreamOutput
 import org.opensearch.common.io.stream.Writeable
@@ -19,35 +18,26 @@ import org.opensearch.common.xcontent.ToXContent
 import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParserUtils
-import org.opensearch.commons.notifications.NotificationConstants.CONFIG_TYPE_TAG
-import org.opensearch.commons.notifications.NotificationConstants.DESCRIPTION_TAG
-import org.opensearch.commons.notifications.NotificationConstants.FEATURE_LIST_TAG
-import org.opensearch.commons.notifications.NotificationConstants.IS_ENABLED_TAG
-import org.opensearch.commons.notifications.NotificationConstants.NAME_TAG
-import org.opensearch.commons.notifications.model.BaseConfigData
-import org.opensearch.commons.notifications.model.config.ConfigDataProperties.createConfigData
-import org.opensearch.commons.notifications.model.config.ConfigDataProperties.getReaderForConfigType
-import org.opensearch.commons.utils.STRING_READER
-import org.opensearch.commons.utils.STRING_WRITER
 import org.opensearch.commons.utils.fieldIfNotNull
 import org.opensearch.commons.utils.logger
-import org.opensearch.commons.utils.stringList
+import org.opensearch.observability.model.ObservabilityObjectDataProperties.createObjectData
+import org.opensearch.observability.model.ObservabilityObjectDataProperties.getReaderForObjectType
+import org.opensearch.observability.model.ObservabilityObjectDataProperties.validateObjectData
+import org.opensearch.observability.model.RestTag.TYPE_FIELD
 import java.io.IOException
 
 /**
  * Data class representing Notification config.
  */
 data class ObservabilityObject(
-//    val name: String,
     val type: ObservabilityObjectType,
-    val observabilityObjectData: BaseObservabilityObjectData,
+    val objectData: BaseObjectData?,
 ) : BaseModel {
 
     init {
-//        require(!Strings.isNullOrEmpty(name)) { "name is null or empty" }
-//        if (!validateConfigData(configType, configData)) {
-//            throw IllegalArgumentException("ConfigType: $configType and data doesn't match")
-//        }
+        if (!validateObjectData(type, objectData)) {
+            throw IllegalArgumentException("Type: $type and data doesn't match")
+        }
         if (type === ObservabilityObjectType.NONE) {
             log.info("Some config field not recognized")
         }
@@ -71,7 +61,7 @@ data class ObservabilityObject(
         @Throws(IOException::class)
         fun parse(parser: XContentParser): ObservabilityObject {
             var type: ObservabilityObjectType? = null
-            var observabilityObjectData: BaseObservabilityObjectData? = null
+            var baseObjectData: BaseObjectData? = null
             XContentParserUtils.ensureExpectedToken(
                 XContentParser.Token.START_OBJECT,
                 parser.currentToken(),
@@ -83,9 +73,9 @@ data class ObservabilityObject(
                 when (fieldName) {
                     TYPE_TAG -> type = ObservabilityObjectType.fromTagOrDefault(parser.text())
                     else -> {
-                        val configTypeForTag = ObservabilityObjectType.fromTagOrDefault(fieldName)
-                        if (configTypeForTag != ObservabilityObjectType.NONE && observabilityObjectData == null) {
-                            observabilityObjectData = createConfigData(configTypeForTag, parser)
+                        val objectTypeForTag = ObservabilityObjectType.fromTagOrDefault(fieldName)
+                        if (objectTypeForTag != ObservabilityObjectType.NONE && baseObjectData == null) {
+                            baseObjectData = createObjectData(objectTypeForTag, parser)
                         } else {
                             parser.skipChildren()
                             log.info("Unexpected field: $fieldName, while parsing configuration")
@@ -94,10 +84,7 @@ data class ObservabilityObject(
                 }
             }
             type ?: throw IllegalArgumentException("$TYPE_TAG field absent")
-            return ObservabilityObject(
-                type,
-                observabilityObjectData
-            )
+            return ObservabilityObject(type, baseObjectData)
         }
     }
 
@@ -107,12 +94,8 @@ data class ObservabilityObject(
     override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
         builder!!
         return builder.startObject()
-            .field(NAME_TAG, name)
-            .field(DESCRIPTION_TAG, description)
-            .field(CONFIG_TYPE_TAG, configType.tag)
-            .field(FEATURE_LIST_TAG, features)
-            .field(IS_ENABLED_TAG, isEnabled)
-            .fieldIfNotNull(configType.tag, configData)
+            .field(TYPE_FIELD, type.tag)
+            .fieldIfNotNull(type.tag, objectData)
             .endObject()
     }
 
@@ -121,25 +104,17 @@ data class ObservabilityObject(
      * @param input StreamInput stream to deserialize data from.
      */
     constructor(input: StreamInput) : this(
-        name = input.readString(),
-        description = input.readString(),
-        configType = input.readEnum(ObservabilityObjectType::class.java),
-        features = input.readSet(STRING_READER),
-        isEnabled = input.readBoolean(),
-        configData = input.readOptionalWriteable(getReaderForConfigType(input.readEnum(ObservabilityObjectType::class.java)))
+        type = input.readEnum(ObservabilityObjectType::class.java),
+        objectData = input.readOptionalWriteable(getReaderForObjectType(input.readEnum(ObservabilityObjectType::class.java)))
     )
 
     /**
      * {@inheritDoc}
      */
     override fun writeTo(output: StreamOutput) {
-        output.writeString(name)
-        output.writeString(description)
-        output.writeEnum(configType)
-        output.writeCollection(features, STRING_WRITER)
-        output.writeBoolean(isEnabled)
+        output.writeEnum(type)
         // Reading config types multiple times in constructor
-        output.writeEnum(configType)
-        output.writeOptionalWriteable(configData)
+        output.writeEnum(type)
+        output.writeOptionalWriteable(objectData)
     }
 }

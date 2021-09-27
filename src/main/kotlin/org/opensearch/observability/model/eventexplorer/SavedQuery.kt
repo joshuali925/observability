@@ -11,13 +11,16 @@
 
 package org.opensearch.observability.model.eventexplorer
 
+import org.opensearch.common.io.stream.StreamOutput
 import org.opensearch.common.xcontent.ToXContent
 import org.opensearch.common.xcontent.ToXContentObject
 import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentFactory
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParserUtils
+import org.opensearch.commons.notifications.model.XParser
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
+import org.opensearch.observability.model.BaseObjectData
 import org.opensearch.observability.model.RestTag
 import org.opensearch.observability.util.fieldIfNotNull
 import org.opensearch.observability.util.logger
@@ -61,7 +64,7 @@ internal data class SavedQuery(
     val query: String?,
     val queriedFields: FieldFilter?,
     val filters: Filters?
-) : ToXContentObject {
+) : BaseObjectData {
 
     internal companion object {
         private val log by logger(SavedQuery::class.java)
@@ -70,6 +73,11 @@ internal data class SavedQuery(
         private const val QUERY_TAG = "query"
         private const val QUERIED_FIELDS_TAG = "queriedFields"
         private const val FILTERS_TAG = "filters"
+
+        /**
+         * Parser to parse xContent
+         */
+        val xParser = XParser { parse(it) }
 
         /**
          * Parse the data from parser and create Notebook object
@@ -109,6 +117,10 @@ internal data class SavedQuery(
      */
     fun toXContent(params: ToXContent.Params = ToXContent.EMPTY_PARAMS): XContentBuilder? {
         return toXContent(XContentFactory.jsonBuilder(), params)
+    }
+
+    override fun writeTo(out: StreamOutput?) {
+        TODO("Not yet implemented")
     }
 
     /**
