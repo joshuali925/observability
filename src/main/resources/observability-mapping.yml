@@ -26,7 +26,7 @@
 #
 ##
 
-# Schema file for the notebooks index
+# Schema file for the observability index (.opensearch-notebooks for compatibility)
 # Since we only search based on "access", sort on lastUpdatedTimeMs & createdTimeMs,
 # other fields are not used in mapping to avoid index on those fields.
 # Also "dynamic" is set to "false" so that other fields can be added.
@@ -46,13 +46,20 @@ properties:
     type: keyword
   notebook:
     type: object
+    enabled: false # consistent mapping in notebooks index
+  saved_query:
+    type: object
     properties:
       name:
         type: text
         fields:
           keyword:
             type: keyword
-  saved_query:
-    type: object
   operational_panel:
     type: object
+    properties:
+      name:
+        type: text
+        fields:
+          keyword:
+            type: keyword

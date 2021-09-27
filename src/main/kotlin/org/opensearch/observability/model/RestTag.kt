@@ -53,6 +53,12 @@ internal object RestTag {
     const val NOTEBOOK_FIELD = "notebook"
     const val NOTEBOOK_ID_FIELD = "notebookId"
     const val NOTEBOOK_DETAILS_FIELD = "notebookDetails"
+
+    const val SAVED_QUERY_LIST_FIELD = "savedQueryDetailsList"
+    const val SAVED_QUERY_FIELD = "savedQuery"
+    const val SAVED_QUERY_ID_FIELD = "savedQueryId"
+    const val SAVED_QUERY_DETAILS_FIELD = "savedQueryDetails"
+
     private val INCLUDE_ID = Pair(ID_FIELD, "true")
     private val EXCLUDE_ACCESS = Pair(ACCESS_LIST_FIELD, "false")
     val REST_OUTPUT_PARAMS: Params = ToXContent.MapParams(mapOf(INCLUDE_ID))
