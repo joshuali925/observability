@@ -42,6 +42,7 @@ import org.opensearch.common.xcontent.XContentFactory
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParser.Token
 import org.opensearch.common.xcontent.XContentParserUtils
+import org.opensearch.observability.model.ObservabilityObject
 import java.io.IOException
 
 /**

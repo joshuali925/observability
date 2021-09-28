@@ -36,6 +36,7 @@ internal object RestTag {
     const val QUERY_FIELD = "query"
 
     const val ID_FIELD = "id"
+    const val OBJECT_FIELD = "object"
     const val UPDATED_TIME_FIELD = "lastUpdatedTimeMs"
     const val CREATED_TIME_FIELD = "createdTimeMs"
     const val TENANT_FIELD = "tenant"
