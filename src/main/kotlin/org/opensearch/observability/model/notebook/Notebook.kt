@@ -154,6 +154,7 @@ internal data class Notebook(
         return toXContent(XContentFactory.jsonBuilder(), params)
     }
 
+    // TODO when is this used
     override fun writeTo(out: StreamOutput?) {
         TODO("Not yet implemented")
     }

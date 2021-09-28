@@ -62,6 +62,7 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
             )
             while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
                 val fieldName = parser.currentName()
+                // TODO do not consume top level field
                 parser.nextToken()
                 when (fieldName) {
                     NOTEBOOK_FIELD -> {

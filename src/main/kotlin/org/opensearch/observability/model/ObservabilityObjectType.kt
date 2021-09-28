@@ -13,6 +13,7 @@ package org.opensearch.observability.model
 
 import org.opensearch.commons.utils.EnumParser
 import org.opensearch.observability.model.RestTag.NOTEBOOK_FIELD
+import org.opensearch.observability.model.RestTag.SAVED_QUERY_FIELD
 
 /**
  * Enum for Notification config type
@@ -28,7 +29,7 @@ enum class ObservabilityObjectType(val tag: String) {
             return tag
         }
     },
-    SAVED_QUERY("saved_query") {
+    SAVED_QUERY(SAVED_QUERY_FIELD) {
         override fun toString(): String {
             return tag
         }

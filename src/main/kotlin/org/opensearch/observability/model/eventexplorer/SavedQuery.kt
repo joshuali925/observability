@@ -25,7 +25,6 @@ import org.opensearch.observability.model.RestTag
 import org.opensearch.observability.util.fieldIfNotNull
 import org.opensearch.observability.util.logger
 import org.opensearch.observability.util.stringList
-import org.opensearch.search.sort.SortOrder
 
 /**
  * Saved query main data class.
@@ -62,8 +61,8 @@ internal data class SavedQuery(
     val name: String?,
     val description: String?,
     val query: String?,
-    val queriedFields: FieldFilter?,
-    val filters: Filters?
+    val selectedDateRange: SelectedDateRange?,
+    val selectedFields: SelectedFields?
 ) : BaseObjectData {
 
     internal companion object {
@@ -71,8 +70,8 @@ internal data class SavedQuery(
         private const val NAME_TAG = "name"
         private const val DESCRIPTION_TAG = "description"
         private const val QUERY_TAG = "query"
-        private const val QUERIED_FIELDS_TAG = "queriedFields"
-        private const val FILTERS_TAG = "filters"
+        private const val SELECTED_DATE_RANGE_TAG = "selected_date_range"
+        private const val SELECTED_FIELDS_TAG = "selected_fields"
 
         /**
          * Parser to parse xContent
@@ -88,8 +87,8 @@ internal data class SavedQuery(
             var name: String? = null
             var description: String? = null
             var query: String? = null
-            var queriedFields: FieldFilter? = null
-            var filters: Filters? = null
+            var selectedDateRange: SelectedDateRange? = null
+            var selectedFields: SelectedFields? = null
             XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.currentToken(), parser)
             while (XContentParser.Token.END_OBJECT != parser.nextToken()) {
                 val fieldName = parser.currentName()
@@ -98,15 +97,15 @@ internal data class SavedQuery(
                     NAME_TAG -> name = parser.text()
                     DESCRIPTION_TAG -> description = parser.text()
                     QUERY_TAG -> query = parser.text()
-                    QUERIED_FIELDS_TAG -> queriedFields = FieldFilter.parse(parser)
-                    FILTERS_TAG -> filters = Filters.parse(parser)
+                    SELECTED_DATE_RANGE_TAG -> selectedDateRange = SelectedDateRange.parse(parser)
+                    SELECTED_FIELDS_TAG -> selectedFields = SelectedFields.parse(parser)
                     else -> {
                         parser.skipChildren()
-                        log.info("$LOG_PREFIX:Notebook Skipping Unknown field $fieldName")
+                        log.info("$LOG_PREFIX:SavedQuery Skipping Unknown field $fieldName")
                     }
                 }
             }
-            return SavedQuery(name, description, query, queriedFields, filters)
+            return SavedQuery(name, description, query, selectedDateRange, selectedFields)
         }
     }
 
@@ -133,86 +132,12 @@ internal data class SavedQuery(
             .fieldIfNotNull(NAME_TAG, name)
             .fieldIfNotNull(DESCRIPTION_TAG, description)
             .fieldIfNotNull(QUERY_TAG, query)
-            .fieldIfNotNull(QUERIED_FIELDS_TAG, queriedFields)
-            .fieldIfNotNull(FILTERS_TAG, filters)
+            .fieldIfNotNull(SELECTED_DATE_RANGE_TAG, selectedDateRange)
+            .fieldIfNotNull(SELECTED_FIELDS_TAG, selectedFields)
         return builder.endObject()
     }
 
-    internal data class Filters(
-        val timeFilter: TimeFilter?,
-        val fieldFilter: FieldFilter?,
-        val sortFilters: List<SortFilter>?
-    ) : ToXContentObject {
-        internal companion object {
-            private const val TIME_FILTER_TAG = "timeFilter"
-            private const val FIELD_FILTER_TAG = "fieldFilter"
-            private const val SORT_FILTERS_TAG = "sortFilters"
-
-            /**
-             * Parse the item list from parser
-             * @param parser data referenced at parser
-             * @return created list of items
-             */
-            private fun parseItemList(parser: XContentParser): List<SortFilter> {
-                val retList: MutableList<SortFilter> = mutableListOf()
-                XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_ARRAY, parser.currentToken(), parser)
-                while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-                    retList.add(SortFilter.parse(parser))
-                }
-                return retList
-            }
-
-            /**
-             * Parse the data from parser and create Format object
-             * @param parser data referenced at parser
-             * @return created Format object
-             */
-            fun parse(parser: XContentParser): Filters {
-                var timeFilter: TimeFilter? = null
-                var fieldFilter: FieldFilter? = null
-                var sortFilters: List<SortFilter>? = null
-                XContentParserUtils.ensureExpectedToken(
-                    XContentParser.Token.START_OBJECT,
-                    parser.currentToken(),
-                    parser
-                )
-                while (XContentParser.Token.END_OBJECT != parser.nextToken()) {
-                    val fieldName = parser.currentName()
-                    parser.nextToken()
-                    when (fieldName) {
-                        TIME_FILTER_TAG -> timeFilter = TimeFilter.parse(parser)
-                        FIELD_FILTER_TAG -> fieldFilter = FieldFilter.parse(parser)
-                        SORT_FILTERS_TAG -> sortFilters = parseItemList(parser)
-                        else -> {
-                            parser.skipChildren()
-                            log.info("$LOG_PREFIX:Format Skipping Unknown field $fieldName")
-                        }
-                    }
-                }
-                return Filters(timeFilter, fieldFilter, sortFilters)
-            }
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
-            val xContentParams = params ?: RestTag.REST_OUTPUT_PARAMS
-            builder!!
-            builder.startObject()
-                .fieldIfNotNull(TIME_FILTER_TAG, timeFilter)
-                .fieldIfNotNull(FIELD_FILTER_TAG, fieldFilter)
-            if (sortFilters != null) {
-                builder.startArray(SORT_FILTERS_TAG)
-                sortFilters.forEach { it.toXContent(builder, xContentParams) }
-                builder.endArray()
-            }
-            builder.endObject()
-            return builder
-        }
-    }
-
-    internal data class TimeFilter(
+    internal data class SelectedDateRange(
         val start: String,
         val end: String,
         val text: String
@@ -227,7 +152,7 @@ internal data class SavedQuery(
              * @param parser data referenced at parser
              * @return created Trigger object
              */
-            fun parse(parser: XContentParser): TimeFilter {
+            fun parse(parser: XContentParser): SelectedDateRange {
                 var start: String? = null
                 var end: String? = null
                 var text: String? = null
@@ -249,7 +174,7 @@ internal data class SavedQuery(
                 start ?: throw IllegalArgumentException("$START_TAG field absent")
                 end ?: throw IllegalArgumentException("$END_TAG field absent")
                 text ?: throw IllegalArgumentException("$TEXT_TAG field absent")
-                return TimeFilter(start, end, text)
+                return SelectedDateRange(start, end, text)
             }
         }
 
@@ -267,7 +192,7 @@ internal data class SavedQuery(
         }
     }
 
-    internal data class FieldFilter(
+    internal data class SelectedFields(
         val text: String?,
         val tokens: List<String>?
     ) : ToXContentObject {
@@ -280,7 +205,7 @@ internal data class SavedQuery(
              * @param parser data referenced at parser
              * @return created Trigger object
              */
-            fun parse(parser: XContentParser): FieldFilter {
+            fun parse(parser: XContentParser): SelectedFields {
                 var text: String? = null
                 var tokens: List<String>? = null
                 XContentParserUtils.ensureExpectedToken(
@@ -299,7 +224,7 @@ internal data class SavedQuery(
                 }
                 text ?: throw IllegalArgumentException("$TEXT_TAG field absent")
                 tokens ?: throw IllegalArgumentException("$TOKENS_TAG field absent")
-                return FieldFilter(text, tokens)
+                return SelectedFields(text, tokens)
             }
         }
 

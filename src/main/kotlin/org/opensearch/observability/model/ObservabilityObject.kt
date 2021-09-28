@@ -70,11 +70,11 @@ data class ObservabilityObject(
                 val fieldName = parser.currentName()
                 parser.nextToken()
                 when (fieldName) {
-                    TYPE_FIELD -> type = ObservabilityObjectType.fromTagOrDefault(parser.text())
                     else -> {
                         println("[ObservabilityObject] in object parsing field $fieldName")
                         val objectTypeForTag = ObservabilityObjectType.fromTagOrDefault(fieldName)
                         if (objectTypeForTag != ObservabilityObjectType.NONE && baseObjectData == null) {
+                            type = objectTypeForTag
                             baseObjectData = createObjectData(objectTypeForTag, parser)
                         } else {
                             parser.skipChildren()
@@ -83,8 +83,7 @@ data class ObservabilityObject(
                     }
                 }
             }
-//            type ?: throw IllegalArgumentException("$TYPE_FIELD field absent")
-            type = ObservabilityObjectType.NOTEBOOK
+            type ?: throw IllegalArgumentException("$TYPE_FIELD field absent")
             return ObservabilityObject(type, baseObjectData)
         }
     }
@@ -104,6 +103,7 @@ data class ObservabilityObject(
      * Constructor used in transport action communication.
      * @param input StreamInput stream to deserialize data from.
      */
+    // TODO when is this used
     constructor(input: StreamInput) : this(
         type = input.readEnum(ObservabilityObjectType::class.java),
         objectData = input.readOptionalWriteable(getReaderForObjectType(input.readEnum(ObservabilityObjectType::class.java)))
