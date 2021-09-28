@@ -68,10 +68,10 @@ internal class CreateObservabilityObjectResponse : BaseResponse {
 
     /**
      * constructor for creating the class
-     * @param configId the id of the created notification configuration
+     * @param id the id of the created notification configuration
      */
-    constructor(configId: String) {
-        this.objectId = configId
+    constructor(id: String) {
+        this.objectId = id
     }
 
     /**

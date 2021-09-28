@@ -25,6 +25,7 @@ import org.opensearch.commons.notifications.action.CreateNotificationConfigRespo
 import org.opensearch.commons.utils.fieldIfNotNull
 import org.opensearch.commons.utils.logger
 import org.opensearch.observability.model.RestTag.ID_FIELD
+import org.opensearch.observability.model.RestTag.NOTEBOOK_FIELD
 import org.opensearch.observability.model.RestTag.OBJECT_FIELD
 import java.io.IOException
 
@@ -63,15 +64,17 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
                 val fieldName = parser.currentName()
                 parser.nextToken()
                 when (fieldName) {
-                    ID_FIELD -> objectId = parser.text()
-                    OBJECT_FIELD -> observabilityObject = ObservabilityObject.parse(parser)
+                    NOTEBOOK_FIELD -> {
+                        println("[CreateObservabilityObjectRequest] going into observability object parse")
+                        observabilityObject = ObservabilityObject.parse(parser)
+                    }
                     else -> {
                         parser.skipChildren()
-                        log.info("Unexpected field: $fieldName, while parsing CreateObjectRequest")
+                        log.info("Unexpected field: $fieldName, while parsing CreateObservabilityObjectRequest")
                     }
                 }
             }
-            observabilityObject ?: throw IllegalArgumentException("${OBJECT_FIELD} field absent")
+            observabilityObject ?: throw IllegalArgumentException("object field absent")
 //            if (configId != null) {
 //                validateId(configId)
 //            }
@@ -86,7 +89,7 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
         builder!!
         return builder.startObject()
             .fieldIfNotNull(ID_FIELD, objectId)
-            .field(OBJECT_FIELD, observabilityObject)
+            .field(NOTEBOOK_FIELD, observabilityObject)
             .endObject()
     }
 

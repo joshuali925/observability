@@ -27,11 +27,13 @@
 
 package org.opensearch.observability.action
 
+import org.opensearch.OpenSearchStatusException
 import org.opensearch.commons.authuser.User
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.index.NotebooksIndex
-import org.opensearch.observability.model.notebook.CreateNotebookRequest
-import org.opensearch.observability.model.notebook.CreateNotebookResponse
+import org.opensearch.observability.model.CreateObservabilityObjectRequest
+import org.opensearch.observability.model.CreateObservabilityObjectResponse
+import org.opensearch.observability.model.ObservabilityObjectDoc
 import org.opensearch.observability.model.notebook.DeleteNotebookRequest
 import org.opensearch.observability.model.notebook.DeleteNotebookResponse
 import org.opensearch.observability.model.notebook.GetAllNotebooksRequest
@@ -43,10 +45,6 @@ import org.opensearch.observability.model.notebook.UpdateNotebookRequest
 import org.opensearch.observability.model.notebook.UpdateNotebookResponse
 import org.opensearch.observability.security.UserAccessManager
 import org.opensearch.observability.util.logger
-import org.opensearch.OpenSearchStatusException
-import org.opensearch.observability.model.CreateObservabilityObjectRequest
-import org.opensearch.observability.model.CreateObservabilityObjectResponse
-import org.opensearch.observability.model.ObservabilityObjectDoc
 import org.opensearch.rest.RestStatus
 import java.time.Instant
 
@@ -58,33 +56,26 @@ internal object NotebookActions {
 
     /**
      * Create new notebook
-     * @param request [CreateNotebookRequest] object
-     * @return [CreateNotebookResponse]
+     * @param request [CreateObservabilityObjectRequest] object
+     * @return [CreateObservabilityObjectResponse]
      */
     fun create(request: CreateObservabilityObjectRequest, user: User?): CreateObservabilityObjectResponse {
         log.info("$LOG_PREFIX:Notebook-create")
         UserAccessManager.validateUser(user)
         val currentTime = Instant.now()
-        val configDoc = ObservabilityObjectDoc(
-            currentTime, currentTime,
+        val objectDoc = ObservabilityObjectDoc(
+            currentTime,
+            currentTime,
             UserAccessManager.getUserTenant(user),
             UserAccessManager.getAllAccessInfo(user),
             request.observabilityObject
         )
-        val notebookDetails = NotebookDetails(
-            "ignore",
-            currentTime,
-            currentTime,
-            UserAccessManager.getUserTenant(user),
-            UserAccessManager.getAllAccessInfo(user),
-            request.notebook
-        )
-        val docId = NotebooksIndex.createNotebook(notebookDetails)
+        val docId = NotebooksIndex.create(objectDoc)
         docId ?: throw OpenSearchStatusException(
             "Notebook Creation failed",
             RestStatus.INTERNAL_SERVER_ERROR
         )
-        return CreateNotebookResponse(docId)
+        return CreateObservabilityObjectResponse(docId)
     }
 
     /**

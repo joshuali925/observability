@@ -72,17 +72,19 @@ data class ObservabilityObject(
                 when (fieldName) {
                     TYPE_FIELD -> type = ObservabilityObjectType.fromTagOrDefault(parser.text())
                     else -> {
+                        println("[ObservabilityObject] in object parsing field $fieldName")
                         val objectTypeForTag = ObservabilityObjectType.fromTagOrDefault(fieldName)
                         if (objectTypeForTag != ObservabilityObjectType.NONE && baseObjectData == null) {
                             baseObjectData = createObjectData(objectTypeForTag, parser)
                         } else {
                             parser.skipChildren()
-                            log.info("Unexpected field: $fieldName, while parsing configuration")
+                            log.info("Unexpected field: $fieldName, while parsing ObservabilityObject")
                         }
                     }
                 }
             }
-            type ?: throw IllegalArgumentException("$TYPE_FIELD field absent")
+//            type ?: throw IllegalArgumentException("$TYPE_FIELD field absent")
+            type = ObservabilityObjectType.NOTEBOOK
             return ObservabilityObject(type, baseObjectData)
         }
     }

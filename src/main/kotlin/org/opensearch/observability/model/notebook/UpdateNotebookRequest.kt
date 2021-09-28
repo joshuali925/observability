@@ -63,7 +63,7 @@ internal class UpdateNotebookRequest : ActionRequest, ToXContentObject {
     val notebook: Notebook
 
     companion object {
-        private val log by logger(CreateNotebookRequest::class.java)
+        private val log by logger(UpdateNotebookRequest::class.java)
     }
 
     constructor(notebookId: String, notebook: Notebook) : super() {

@@ -60,7 +60,7 @@ data class ObservabilityObjectDoc(
                     OBJECT_FIELD -> observabilityObject = ObservabilityObject.parse(parser)
                     else -> {
                         parser.skipChildren()
-                        log.info("Unexpected field: $fieldName, while parsing configuration doc")
+                        log.info("Unexpected field: $fieldName, while parsing ObservabilityObjectDoc")
                     }
                 }
             }

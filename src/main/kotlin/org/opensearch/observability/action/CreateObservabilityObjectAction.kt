@@ -47,25 +47,11 @@ internal class CreateObservabilityObjectAction @Inject constructor(
 
     /**
      * {@inheritDoc}
-     * Transform the request and call super.doExecute() to support call from other plugins.
-     */
-    override fun doExecute(
-        task: Task?,
-        request: CreateObservabilityObjectRequest,
-        listener: ActionListener<CreateObservabilityObjectResponse>
-    ) {
-        val transformedRequest = request as? CreateObservabilityObjectRequest
-            ?: recreateObject(request) { CreateObservabilityObjectRequest(it) }
-        super.doExecute(task, transformedRequest, listener)
-    }
-
-    /**
-     * {@inheritDoc}
      */
     override fun executeRequest(
         request: CreateObservabilityObjectRequest,
         user: User?
     ): CreateObservabilityObjectResponse {
-        return NotebooksIndex.create(request, user)
+        return NotebookActions.create(request, user)
     }
 }

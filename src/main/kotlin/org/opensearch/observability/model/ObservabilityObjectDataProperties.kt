@@ -51,6 +51,8 @@ internal object ObservabilityObjectDataProperties {
      *
      */
     fun createObjectData(objectType: ObservabilityObjectType, parser: XContentParser): BaseObjectData? {
+        println("[ObservabilityObjectDataProperties] debug create object data")
+        println(objectType)
         return OBJECT_PROPERTIES_MAP[objectType]?.objectDataParser?.parse(parser)
     }
 }

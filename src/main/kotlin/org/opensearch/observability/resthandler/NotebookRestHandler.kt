@@ -27,7 +27,6 @@
 package org.opensearch.observability.resthandler
 
 import org.opensearch.observability.ObservabilityPlugin.Companion.BASE_NOTEBOOKS_URI
-import org.opensearch.observability.action.CreateNotebookAction
 import org.opensearch.observability.action.DeleteNotebookAction
 import org.opensearch.observability.action.GetNotebookAction
 import org.opensearch.observability.action.NotebookActions
@@ -39,6 +38,9 @@ import org.opensearch.observability.model.RestTag.NOTEBOOK_ID_FIELD
 import org.opensearch.observability.model.notebook.UpdateNotebookRequest
 import org.opensearch.observability.util.contentParserNextToken
 import org.opensearch.client.node.NodeClient
+import org.opensearch.observability.action.CreateObservabilityObjectAction
+import org.opensearch.observability.model.CreateObservabilityObjectRequest
+import org.opensearch.observability.model.RestTag.ID_FIELD
 import org.opensearch.rest.BaseRestHandler
 import org.opensearch.rest.BaseRestHandler.RestChannelConsumer
 import org.opensearch.rest.BytesRestResponse
@@ -116,25 +118,32 @@ internal class NotebookRestHandler : BaseRestHandler() {
     override fun prepareRequest(request: RestRequest, client: NodeClient): RestChannelConsumer {
         return when (request.method()) {
             POST -> RestChannelConsumer {
-                client.execute(CreateNotebookAction.ACTION_TYPE,
-                    CreateNotebookRequest(request.contentParserNextToken()),
-                    RestResponseToXContentListener(it))
+                client.execute(
+                    CreateObservabilityObjectAction.ACTION_TYPE,
+                    CreateObservabilityObjectRequest.parse(request.contentParserNextToken()),
+                    RestResponseToXContentListener(it)
+                )
             }
             PUT -> RestChannelConsumer {
                 client.execute(
                     UpdateNotebookAction.ACTION_TYPE,
                     UpdateNotebookRequest(request.contentParserNextToken(), request.param(NOTEBOOK_ID_FIELD)),
-                    RestResponseToXContentListener(it))
+                    RestResponseToXContentListener(it)
+                )
             }
             GET -> RestChannelConsumer {
-                client.execute(GetNotebookAction.ACTION_TYPE,
+                client.execute(
+                    GetNotebookAction.ACTION_TYPE,
                     GetNotebookRequest(request.param(NOTEBOOK_ID_FIELD)),
-                    RestResponseToXContentListener(it))
+                    RestResponseToXContentListener(it)
+                )
             }
             DELETE -> RestChannelConsumer {
-                client.execute(DeleteNotebookAction.ACTION_TYPE,
+                client.execute(
+                    DeleteNotebookAction.ACTION_TYPE,
                     DeleteNotebookRequest(request.param(NOTEBOOK_ID_FIELD)),
-                    RestResponseToXContentListener(it))
+                    RestResponseToXContentListener(it)
+                )
             }
             else -> RestChannelConsumer {
                 it.sendResponse(BytesRestResponse(RestStatus.METHOD_NOT_ALLOWED, "${request.method()} is not allowed"))

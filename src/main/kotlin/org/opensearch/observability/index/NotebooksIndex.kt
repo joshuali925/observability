@@ -44,6 +44,7 @@ import org.opensearch.common.xcontent.XContentType
 import org.opensearch.index.query.QueryBuilders
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.model.CreateObservabilityObjectRequest
+import org.opensearch.observability.model.ObservabilityObjectDoc
 import org.opensearch.observability.model.ObservabilityObjectType
 import org.opensearch.observability.model.RestTag.ACCESS_LIST_FIELD
 import org.opensearch.observability.model.RestTag.TENANT_FIELD
@@ -248,7 +249,21 @@ internal object NotebooksIndex {
         return response.result == DocWriteResponse.Result.DELETED
     }
 
-    fun create(request: CreateObservabilityObjectRequest, user: User?): CreateObservabilityObjectResponse {
-
+    fun create(observabilityObjectDoc: ObservabilityObjectDoc): String? {
+        createIndex()
+        val xContent = observabilityObjectDoc.toXContent()
+        println("debug index create")
+        println(xContent)
+        val indexRequest = IndexRequest(OBSERVABILITY_INDEX_NAME)
+            .source(xContent)
+            .create(true)
+        val actionFuture = client.index(indexRequest)
+        val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
+        return if (response.result != DocWriteResponse.Result.CREATED) {
+            log.warn("$LOG_PREFIX:createNotebook - response:$response")
+            null
+        } else {
+            response.id
+        }
     }
 }
