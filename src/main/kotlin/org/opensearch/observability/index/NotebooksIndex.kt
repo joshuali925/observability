@@ -43,6 +43,7 @@ import org.opensearch.common.xcontent.NamedXContentRegistry
 import org.opensearch.common.xcontent.XContentType
 import org.opensearch.index.query.QueryBuilders
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
+import org.opensearch.observability.model.CreateObservabilityObjectRequest
 import org.opensearch.observability.model.ObservabilityObjectType
 import org.opensearch.observability.model.RestTag.ACCESS_LIST_FIELD
 import org.opensearch.observability.model.RestTag.TENANT_FIELD
@@ -245,5 +246,9 @@ internal object NotebooksIndex {
             log.warn("$LOG_PREFIX:deleteNotebook failed for $id; response:$response")
         }
         return response.result == DocWriteResponse.Result.DELETED
+    }
+
+    fun create(request: CreateObservabilityObjectRequest, user: User?): CreateObservabilityObjectResponse {
+
     }
 }

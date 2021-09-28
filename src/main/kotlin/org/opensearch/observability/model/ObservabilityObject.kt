@@ -45,7 +45,6 @@ data class ObservabilityObject(
 
     companion object {
         private val log by logger(ObservabilityObject::class.java)
-        private const val TYPE_TAG = "type"
 
         /**
          * reader to create instance of class from writable.
@@ -71,7 +70,7 @@ data class ObservabilityObject(
                 val fieldName = parser.currentName()
                 parser.nextToken()
                 when (fieldName) {
-                    TYPE_TAG -> type = ObservabilityObjectType.fromTagOrDefault(parser.text())
+                    TYPE_FIELD -> type = ObservabilityObjectType.fromTagOrDefault(parser.text())
                     else -> {
                         val objectTypeForTag = ObservabilityObjectType.fromTagOrDefault(fieldName)
                         if (objectTypeForTag != ObservabilityObjectType.NONE && baseObjectData == null) {
@@ -83,7 +82,7 @@ data class ObservabilityObject(
                     }
                 }
             }
-            type ?: throw IllegalArgumentException("$TYPE_TAG field absent")
+            type ?: throw IllegalArgumentException("$TYPE_FIELD field absent")
             return ObservabilityObject(type, baseObjectData)
         }
     }
