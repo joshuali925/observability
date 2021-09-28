@@ -37,7 +37,6 @@ internal object RestTag {
 
     const val ID_FIELD = "id"
     const val OBJECT_FIELD = "object"
-    const val METADATA_FIELD = "metadata"
     const val UPDATED_TIME_FIELD = "lastUpdatedTimeMs"
     const val CREATED_TIME_FIELD = "createdTimeMs"
     const val TENANT_FIELD = "tenant"

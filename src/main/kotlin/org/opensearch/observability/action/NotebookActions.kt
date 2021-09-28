@@ -46,7 +46,6 @@ import org.opensearch.observability.util.logger
 import org.opensearch.OpenSearchStatusException
 import org.opensearch.observability.model.CreateObservabilityObjectRequest
 import org.opensearch.observability.model.CreateObservabilityObjectResponse
-import org.opensearch.observability.model.DocMetadata
 import org.opensearch.observability.model.ObservabilityObjectDoc
 import org.opensearch.rest.RestStatus
 import java.time.Instant
@@ -66,13 +65,12 @@ internal object NotebookActions {
         log.info("$LOG_PREFIX:Notebook-create")
         UserAccessManager.validateUser(user)
         val currentTime = Instant.now()
-        val metadata = DocMetadata(
-            currentTime,
-            currentTime,
+        val configDoc = ObservabilityObjectDoc(
+            currentTime, currentTime,
             UserAccessManager.getUserTenant(user),
-            UserAccessManager.getAllAccessInfo(user)
+            UserAccessManager.getAllAccessInfo(user),
+            request.observabilityObject
         )
-        val configDoc = ObservabilityObjectDoc(metadata, request.observabilityObject)
         val notebookDetails = NotebookDetails(
             "ignore",
             currentTime,
