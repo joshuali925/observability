@@ -21,7 +21,6 @@ import org.opensearch.common.xcontent.ToXContentObject
 import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParserUtils
-import org.opensearch.commons.notifications.action.CreateNotificationConfigResponse
 import org.opensearch.commons.utils.fieldIfNotNull
 import org.opensearch.commons.utils.logger
 import org.opensearch.observability.model.RestTag.ID_FIELD
@@ -36,7 +35,7 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
     val objectData: BaseObjectData?
 
     companion object {
-        private val log by logger(CreateNotificationConfigResponse::class.java)
+        private val log by logger(CreateObservabilityObjectRequest::class.java)
 
         /**
          * reader to create instance of class from writable.

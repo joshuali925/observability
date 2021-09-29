@@ -27,20 +27,21 @@
 
 package org.opensearch.observability.model.notebook
 
+import org.opensearch.common.io.stream.StreamInput
 import org.opensearch.common.io.stream.StreamOutput
 import org.opensearch.common.io.stream.Writeable
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.util.logger
 import org.opensearch.common.xcontent.ToXContent
-import org.opensearch.common.xcontent.ToXContentObject
 import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentFactory
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParserUtils
-import org.opensearch.commons.notifications.model.Chime
 import org.opensearch.commons.notifications.model.XParser
+import org.opensearch.observability.model.BaseModel
 import org.opensearch.observability.model.BaseObjectData
 import org.opensearch.observability.model.RestTag
+import org.opensearch.observability.util.fieldIfNotNull
 
 /**
  * Notebook main data class.
@@ -90,6 +91,11 @@ internal data class Notebook(
         private const val PARAGRAPHS_TAG = "paragraphs"
 
         /**
+         * reader to create instance of class from writable.
+         */
+        val reader = Writeable.Reader { Notebook(it) }
+
+        /**
          * Parser to parse xContent
          */
         val xParser = XParser { parse(it) }
@@ -135,13 +141,7 @@ internal data class Notebook(
                     }
                 }
             }
-            return Notebook(
-                name,
-                dateCreated,
-                dateModified,
-                backend,
-                paragraphs
-            )
+            return Notebook(name, dateCreated, dateModified, backend, paragraphs)
         }
     }
 
@@ -154,9 +154,27 @@ internal data class Notebook(
         return toXContent(XContentFactory.jsonBuilder(), params)
     }
 
-    // TODO when is this used
-    override fun writeTo(out: StreamOutput?) {
-        TODO("Not yet implemented")
+    /**
+     * Constructor used in transport action communication.
+     * @param input StreamInput stream to deserialize data from.
+     */
+    constructor(input: StreamInput) : this(
+        name = input.readString(),
+        dateCreated = input.readString(),
+        dateModified = input.readString(),
+        backend = input.readString(),
+        paragraphs = input.readList(Paragraph.reader)
+    )
+
+    /**
+     * {@inheritDoc}
+     */
+    override fun writeTo(output: StreamOutput) {
+        output.writeString(name)
+        output.writeString(dateCreated)
+        output.writeString(dateModified)
+        output.writeString(backend)
+        output.writeCollection(paragraphs)
     }
 
     /**
@@ -166,18 +184,10 @@ internal data class Notebook(
         val xContentParams = params ?: RestTag.REST_OUTPUT_PARAMS
         builder!!
         builder.startObject()
-        if (name != null) {
-            builder.field(NAME_TAG, name)
-        }
-        if (dateCreated != null) {
-            builder.field(DATE_CREATED_TAG, dateCreated)
-        }
-        if (dateModified != null) {
-            builder.field(DATE_MODIFIED_TAG, dateModified)
-        }
-        if (backend != null) {
-            builder.field(BACKEND_TAG, backend)
-        }
+            .fieldIfNotNull(NAME_TAG, name)
+            .fieldIfNotNull(DATE_CREATED_TAG, dateCreated)
+            .fieldIfNotNull(DATE_MODIFIED_TAG, dateModified)
+            .fieldIfNotNull(BACKEND_TAG, backend)
         if (paragraphs != null) {
             builder.startArray(PARAGRAPHS_TAG)
             paragraphs.forEach { it.toXContent(builder, xContentParams) }
@@ -191,17 +201,27 @@ internal data class Notebook(
      */
     internal data class Paragraph(
         val output: List<Output>,
-        val input: Input,
+        val input: Input?,
         val dateCreated: String,
         val dateModified: String,
         val id: String
-    ) : ToXContentObject {
+    ) : BaseModel {
         internal companion object {
             private const val OUTPUT_TAG = "output"
             private const val INPUT_TAG = "input"
             private const val DATE_CREATED_TAG = "dateCreated"
             private const val DATE_MODIFIED_TAG = "dateModified"
             private const val ID_TAG = "id"
+
+            /**
+             * reader to create instance of class from writable.
+             */
+            val reader = Writeable.Reader { Paragraph(it) }
+
+            /**
+             * Parser to parse xContent
+             */
+            val xParser = XParser { parse(it) }
 
             /**
              * Parse the item list from parser
@@ -253,14 +273,24 @@ internal data class Notebook(
                 dateCreated ?: throw IllegalArgumentException("$DATE_CREATED_TAG field absent")
                 dateModified ?: throw IllegalArgumentException("$DATE_MODIFIED_TAG field absent")
                 id ?: throw IllegalArgumentException("$ID_TAG field absent")
-                return Paragraph(
-                    output,
-                    input,
-                    dateCreated,
-                    dateModified,
-                    id
-                )
+                return Paragraph(output, input, dateCreated, dateModified, id)
             }
+        }
+
+        constructor(streamInput: StreamInput) : this(
+            output = streamInput.readList(Output.reader),
+            input = streamInput.readOptionalWriteable(Input.reader),
+            dateCreated = streamInput.readString(),
+            dateModified = streamInput.readString(),
+            id = streamInput.readString()
+        )
+
+        override fun writeTo(streamOutput: StreamOutput) {
+            streamOutput.writeCollection(output)
+            streamOutput.writeOptionalWriteable(input)
+            streamOutput.writeString(dateCreated)
+            streamOutput.writeString(dateModified)
+            streamOutput.writeString(id)
         }
 
         /**
@@ -288,11 +318,21 @@ internal data class Notebook(
         val result: String?,
         val outputType: String?,
         val executionTime: String?
-    ) : ToXContentObject {
+    ) : BaseModel {
         internal companion object {
             private const val RESULT_TAG = "result"
             private const val OUTPUT_TYPE_TAG = "outputType"
             private const val EXECUTION_TIME_TAG = "execution_time"
+
+            /**
+             * reader to create instance of class from writable.
+             */
+            val reader = Writeable.Reader { Output(it) }
+
+            /**
+             * Parser to parse xContent
+             */
+            val xParser = XParser { parse(it) }
 
             /**
              * Parse the data from parser and create Format object
@@ -324,12 +364,20 @@ internal data class Notebook(
                 result ?: throw IllegalArgumentException("$RESULT_TAG field absent")
                 outputType ?: throw IllegalArgumentException("$OUTPUT_TYPE_TAG field absent")
                 executionTime ?: throw IllegalArgumentException("$EXECUTION_TIME_TAG field absent")
-                return Output(
-                    result,
-                    outputType,
-                    executionTime
-                )
+                return Output(result, outputType, executionTime)
             }
+        }
+
+        constructor(input: StreamInput) : this(
+            result = input.readString(),
+            outputType = input.readString(),
+            executionTime = input.readString()
+        )
+
+        override fun writeTo(output: StreamOutput) {
+            output.writeString(result)
+            output.writeString(outputType)
+            output.writeString(executionTime)
         }
 
         /**
@@ -352,10 +400,20 @@ internal data class Notebook(
     internal data class Input(
         val inputText: String?,
         val inputType: String?
-    ) : ToXContentObject {
+    ) : BaseModel {
         internal companion object {
             private const val INPUT_TEXT_TAG = "inputText"
             private const val INPUT_TYPE_TAG = "inputType"
+
+            /**
+             * reader to create instance of class from writable.
+             */
+            val reader = Writeable.Reader { Input(it) }
+
+            /**
+             * Parser to parse xContent
+             */
+            val xParser = XParser { parse(it) }
 
             /**
              * Parse the data from parser and create Trigger object
@@ -383,6 +441,16 @@ internal data class Notebook(
                 inputType ?: throw IllegalArgumentException("$INPUT_TYPE_TAG field absent")
                 return Input(inputText, inputType)
             }
+        }
+
+        constructor(input: StreamInput) : this(
+            inputText = input.readString(),
+            inputType = input.readString()
+        )
+
+        override fun writeTo(output: StreamOutput) {
+            output.writeString(inputText)
+            output.writeString(inputType)
         }
 
         /**

@@ -4,6 +4,7 @@ import org.opensearch.common.io.stream.Writeable
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.commons.notifications.model.XParser
 import org.opensearch.observability.model.eventexplorer.SavedQuery
+import org.opensearch.observability.model.eventexplorer.SavedVisualization
 import org.opensearch.observability.model.notebook.Notebook
 
 internal object ObservabilityObjectDataProperties {
@@ -17,8 +18,12 @@ internal object ObservabilityObjectDataProperties {
     )
 
     private val OBJECT_PROPERTIES_MAP = mapOf(
-        Pair(ObservabilityObjectType.NOTEBOOK, ObjectProperty(null, Notebook.xParser)),
-        Pair(ObservabilityObjectType.SAVED_QUERY, ObjectProperty(null, SavedQuery.xParser))
+        Pair(ObservabilityObjectType.NOTEBOOK, ObjectProperty(Notebook.reader, Notebook.xParser)),
+        Pair(ObservabilityObjectType.SAVED_QUERY, ObjectProperty(SavedQuery.reader, SavedQuery.xParser)),
+        Pair(
+            ObservabilityObjectType.SAVED_VISUALIZATION,
+            ObjectProperty(SavedVisualization.reader, SavedVisualization.xParser)
+        )
     )
 
     /**
@@ -38,6 +43,7 @@ internal object ObservabilityObjectDataProperties {
         return when (objectType) {
             ObservabilityObjectType.NOTEBOOK -> objectData is Notebook
             ObservabilityObjectType.SAVED_QUERY -> objectData is SavedQuery
+            ObservabilityObjectType.SAVED_VISUALIZATION -> objectData is SavedVisualization
             ObservabilityObjectType.OPERATIONAL_PANEL -> true
             ObservabilityObjectType.NONE -> true
         }

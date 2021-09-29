@@ -31,7 +31,6 @@ import org.opensearch.observability.action.DeleteNotebookAction
 import org.opensearch.observability.action.GetNotebookAction
 import org.opensearch.observability.action.NotebookActions
 import org.opensearch.observability.action.UpdateNotebookAction
-import org.opensearch.observability.model.notebook.CreateNotebookRequest
 import org.opensearch.observability.model.notebook.DeleteNotebookRequest
 import org.opensearch.observability.model.notebook.GetNotebookRequest
 import org.opensearch.observability.model.RestTag.NOTEBOOK_ID_FIELD
@@ -40,7 +39,6 @@ import org.opensearch.observability.util.contentParserNextToken
 import org.opensearch.client.node.NodeClient
 import org.opensearch.observability.action.CreateObservabilityObjectAction
 import org.opensearch.observability.model.CreateObservabilityObjectRequest
-import org.opensearch.observability.model.RestTag.ID_FIELD
 import org.opensearch.rest.BaseRestHandler
 import org.opensearch.rest.BaseRestHandler.RestChannelConsumer
 import org.opensearch.rest.BytesRestResponse

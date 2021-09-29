@@ -11,18 +11,14 @@
 
 package org.opensearch.observability.action
 
-import org.opensearch.action.ActionListener
 import org.opensearch.action.ActionType
 import org.opensearch.action.support.ActionFilters
 import org.opensearch.client.Client
 import org.opensearch.common.inject.Inject
 import org.opensearch.common.xcontent.NamedXContentRegistry
 import org.opensearch.commons.authuser.User
-import org.opensearch.commons.utils.recreateObject
-import org.opensearch.observability.index.NotebooksIndex
 import org.opensearch.observability.model.CreateObservabilityObjectRequest
 import org.opensearch.observability.model.CreateObservabilityObjectResponse
-import org.opensearch.tasks.Task
 import org.opensearch.transport.TransportService
 
 /**

@@ -9,8 +9,6 @@ import org.opensearch.commons.utils.logger
 import org.opensearch.commons.utils.stringList
 import org.opensearch.observability.model.RestTag.ACCESS_LIST_FIELD
 import org.opensearch.observability.model.RestTag.CREATED_TIME_FIELD
-import org.opensearch.observability.model.RestTag.NOTEBOOK_FIELD
-import org.opensearch.observability.model.RestTag.OBJECT_FIELD
 import org.opensearch.observability.model.RestTag.TENANT_FIELD
 import org.opensearch.observability.model.RestTag.UPDATED_TIME_FIELD
 import org.opensearch.observability.security.UserAccessManager

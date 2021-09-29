@@ -54,7 +54,7 @@ import org.opensearch.observability.util.stringList
  * }</pre>
  */
 
-internal data class SavedQuery(
+internal data class SavedVisualization(
     val name: String?,
     val description: String?,
     val query: String?,
@@ -63,7 +63,7 @@ internal data class SavedQuery(
 ) : BaseObjectData {
 
     internal companion object {
-        private val log by logger(SavedQuery::class.java)
+        private val log by logger(SavedVisualization::class.java)
         private const val NAME_TAG = "name"
         private const val DESCRIPTION_TAG = "description"
         private const val QUERY_TAG = "query"
@@ -73,7 +73,7 @@ internal data class SavedQuery(
         /**
          * reader to create instance of class from writable.
          */
-        val reader = Writeable.Reader { SavedQuery(it) }
+        val reader = Writeable.Reader { SavedVisualization(it) }
 
         /**
          * Parser to parse xContent
@@ -85,7 +85,7 @@ internal data class SavedQuery(
          * @param parser data referenced at parser
          * @return created Notebook object
          */
-        fun parse(parser: XContentParser): SavedQuery {
+        fun parse(parser: XContentParser): SavedVisualization {
             var name: String? = null
             var description: String? = null
             var query: String? = null
@@ -103,11 +103,11 @@ internal data class SavedQuery(
                     SELECTED_FIELDS_TAG -> selectedFields = SelectedFields.parse(parser)
                     else -> {
                         parser.skipChildren()
-                        log.info("$LOG_PREFIX:SavedQuery Skipping Unknown field $fieldName")
+                        log.info("$LOG_PREFIX:SavedVisualization Skipping Unknown field $fieldName")
                     }
                 }
             }
-            return SavedQuery(name, description, query, selectedDateRange, selectedFields)
+            return SavedVisualization(name, description, query, selectedDateRange, selectedFields)
         }
     }
 

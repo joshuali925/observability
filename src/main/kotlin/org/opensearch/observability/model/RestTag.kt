@@ -60,6 +60,11 @@ internal object RestTag {
     const val SAVED_QUERY_ID_FIELD = "savedQueryId"
     const val SAVED_QUERY_DETAILS_FIELD = "savedQueryDetails"
 
+    const val SAVED_VISUALIZATION_LIST_FIELD = "savedVisualizationDetailsList"
+    const val SAVED_VISUALIZATION_FIELD = "savedVisualizationQuery"
+    const val SAVED_VISUALIZATION_ID_FIELD = "savedVisualizationQueryId"
+    const val SAVED_VISUALIZATION_DETAILS_FIELD = "savedVisualizationDetails"
+
     private val INCLUDE_ID = Pair(ID_FIELD, "true")
     private val EXCLUDE_ACCESS = Pair(ACCESS_LIST_FIELD, "false")
     val REST_OUTPUT_PARAMS: Params = ToXContent.MapParams(mapOf(INCLUDE_ID))

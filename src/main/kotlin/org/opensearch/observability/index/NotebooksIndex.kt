@@ -43,12 +43,10 @@ import org.opensearch.common.xcontent.NamedXContentRegistry
 import org.opensearch.common.xcontent.XContentType
 import org.opensearch.index.query.QueryBuilders
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
-import org.opensearch.observability.model.CreateObservabilityObjectRequest
 import org.opensearch.observability.model.ObservabilityObjectDoc
 import org.opensearch.observability.model.ObservabilityObjectType
 import org.opensearch.observability.model.RestTag.ACCESS_LIST_FIELD
 import org.opensearch.observability.model.RestTag.TENANT_FIELD
-import org.opensearch.observability.model.RestTag.TYPE_FIELD
 import org.opensearch.observability.model.notebook.GetAllNotebooksRequest
 import org.opensearch.observability.model.notebook.NotebookDetails
 import org.opensearch.observability.model.notebook.NotebookDetailsSearchResults
