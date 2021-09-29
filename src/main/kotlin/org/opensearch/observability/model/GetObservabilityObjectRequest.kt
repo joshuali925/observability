@@ -11,38 +11,44 @@
 
 package org.opensearch.observability.model
 
+import org.opensearch.action.ActionRequest
+import org.opensearch.action.ActionRequestValidationException
 import org.opensearch.common.io.stream.StreamInput
 import org.opensearch.common.io.stream.StreamOutput
 import org.opensearch.common.io.stream.Writeable
 import org.opensearch.common.xcontent.ToXContent
+import org.opensearch.common.xcontent.ToXContentObject
 import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParserUtils
+import org.opensearch.commons.utils.fieldIfNotNull
 import org.opensearch.commons.utils.logger
+import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.model.RestTag.ID_FIELD
 import java.io.IOException
 
 /**
- * Action Response for creating new configuration.
+ * Action request for creating new configuration.
  */
-internal class CreateObservabilityObjectResponse : BaseResponse {
+internal class GetObservabilityObjectRequest : ActionRequest, ToXContentObject {
     val objectId: String
 
     companion object {
-        private val log by logger(CreateObservabilityObjectResponse::class.java)
+        private val log by logger(GetObservabilityObjectRequest::class.java)
 
         /**
          * reader to create instance of class from writable.
          */
-        val reader = Writeable.Reader { CreateObservabilityObjectResponse(it) }
+        val reader = Writeable.Reader { GetObservabilityObjectRequest(it) }
 
         /**
          * Creator used in REST communication.
          * @param parser XContentParser to deserialize data from.
+         * @param id optional id to use if missed in XContent
          */
         @JvmStatic
         @Throws(IOException::class)
-        fun parse(parser: XContentParser): CreateObservabilityObjectResponse {
+        fun parse(parser: XContentParser): GetObservabilityObjectRequest {
             var objectId: String? = null
 
             XContentParserUtils.ensureExpectedToken(
@@ -57,21 +63,31 @@ internal class CreateObservabilityObjectResponse : BaseResponse {
                     ID_FIELD -> objectId = parser.text()
                     else -> {
                         parser.skipChildren()
-                        log.info("Unexpected field: $fieldName, while parsing CreateObservabilityObjectResponse")
+                        log.info("$LOG_PREFIX:Skipping Unknown field $fieldName")
                     }
                 }
             }
             objectId ?: throw IllegalArgumentException("$ID_FIELD field absent")
-            return CreateObservabilityObjectResponse(objectId)
+            return GetObservabilityObjectRequest(objectId)
         }
     }
 
     /**
-     * constructor for creating the class
-     * @param id the id of the created notification configuration
+     * {@inheritDoc}
      */
-    constructor(id: String) {
-        this.objectId = id
+    override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
+        builder!!
+        return builder.startObject()
+            .fieldIfNotNull(ID_FIELD, objectId)
+            .endObject()
+    }
+
+    /**
+     * constructor for creating the class
+     * @param objectId optional id to use for notification config object
+     */
+    constructor(objectId: String) {
+        this.objectId = objectId
     }
 
     /**
@@ -87,16 +103,14 @@ internal class CreateObservabilityObjectResponse : BaseResponse {
      */
     @Throws(IOException::class)
     override fun writeTo(output: StreamOutput) {
+        super.writeTo(output)
         output.writeString(objectId)
     }
 
     /**
      * {@inheritDoc}
      */
-    override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
-        builder!!
-        return builder.startObject()
-            .field(ID_FIELD, objectId)
-            .endObject()
+    override fun validate(): ActionRequestValidationException? {
+        return null
     }
 }

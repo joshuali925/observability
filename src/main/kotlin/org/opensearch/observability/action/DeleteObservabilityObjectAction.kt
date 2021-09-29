@@ -27,38 +27,38 @@
 
 package org.opensearch.observability.action
 
-import org.opensearch.commons.authuser.User
-import org.opensearch.observability.model.notebook.DeleteNotebookRequest
-import org.opensearch.observability.model.notebook.DeleteNotebookResponse
 import org.opensearch.action.ActionType
 import org.opensearch.action.support.ActionFilters
 import org.opensearch.client.Client
 import org.opensearch.common.inject.Inject
 import org.opensearch.common.xcontent.NamedXContentRegistry
+import org.opensearch.commons.authuser.User
+import org.opensearch.observability.model.DeleteObservabilityObjectRequest
+import org.opensearch.observability.model.DeleteObservabilityObjectResponse
 import org.opensearch.transport.TransportService
 
 /**
  * Delete notebook transport action
  */
-internal class DeleteNotebookAction @Inject constructor(
+internal class DeleteObservabilityObjectAction @Inject constructor(
     transportService: TransportService,
     client: Client,
     actionFilters: ActionFilters,
     val xContentRegistry: NamedXContentRegistry
-) : PluginBaseAction<DeleteNotebookRequest, DeleteNotebookResponse>(NAME,
+) : PluginBaseAction<DeleteObservabilityObjectRequest, DeleteObservabilityObjectResponse>(NAME,
     transportService,
     client,
     actionFilters,
-    ::DeleteNotebookRequest) {
+    ::DeleteObservabilityObjectRequest) {
     companion object {
         private const val NAME = "cluster:admin/opendistro/notebooks/delete"
-        internal val ACTION_TYPE = ActionType(NAME, ::DeleteNotebookResponse)
+        internal val ACTION_TYPE = ActionType(NAME, ::DeleteObservabilityObjectResponse)
     }
 
     /**
      * {@inheritDoc}
      */
-    override fun executeRequest(request: DeleteNotebookRequest, user: User?): DeleteNotebookResponse {
+    override fun executeRequest(request: DeleteObservabilityObjectRequest, user: User?): DeleteObservabilityObjectResponse {
         return NotebookActions.delete(request, user)
     }
 }

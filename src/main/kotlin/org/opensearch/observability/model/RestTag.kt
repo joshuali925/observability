@@ -36,6 +36,7 @@ internal object RestTag {
     const val QUERY_FIELD = "query"
 
     const val ID_FIELD = "id"
+    const val ID_LIST_FIELD = "idList"
     const val OBJECT_FIELD = "object"
     const val UPDATED_TIME_FIELD = "lastUpdatedTimeMs"
     const val CREATED_TIME_FIELD = "createdTimeMs"
@@ -64,6 +65,8 @@ internal object RestTag {
     const val SAVED_VISUALIZATION_FIELD = "savedVisualizationQuery"
     const val SAVED_VISUALIZATION_ID_FIELD = "savedVisualizationQueryId"
     const val SAVED_VISUALIZATION_DETAILS_FIELD = "savedVisualizationDetails"
+
+    const val DELETE_RESPONSE_LIST_TAG = "delete_response_list"
 
     private val INCLUDE_ID = Pair(ID_FIELD, "true")
     private val EXCLUDE_ACCESS = Pair(ACCESS_LIST_FIELD, "false")

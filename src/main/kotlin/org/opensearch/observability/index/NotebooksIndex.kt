@@ -30,8 +30,11 @@ package org.opensearch.observability.index
 import org.opensearch.ResourceAlreadyExistsException
 import org.opensearch.action.DocWriteResponse
 import org.opensearch.action.admin.indices.create.CreateIndexRequest
+import org.opensearch.action.bulk.BulkRequest
 import org.opensearch.action.delete.DeleteRequest
 import org.opensearch.action.get.GetRequest
+import org.opensearch.action.get.GetResponse
+import org.opensearch.action.get.MultiGetRequest
 import org.opensearch.action.index.IndexRequest
 import org.opensearch.action.search.SearchRequest
 import org.opensearch.action.update.UpdateRequest
@@ -44,6 +47,7 @@ import org.opensearch.common.xcontent.XContentType
 import org.opensearch.index.query.QueryBuilders
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.model.ObservabilityObjectDoc
+import org.opensearch.observability.model.ObservabilityObjectDocInfo
 import org.opensearch.observability.model.ObservabilityObjectType
 import org.opensearch.observability.model.RestTag.ACCESS_LIST_FIELD
 import org.opensearch.observability.model.RestTag.TENANT_FIELD
@@ -53,6 +57,7 @@ import org.opensearch.observability.model.notebook.NotebookDetailsSearchResults
 import org.opensearch.observability.settings.PluginSettings
 import org.opensearch.observability.util.SecureIndexClient
 import org.opensearch.observability.util.logger
+import org.opensearch.rest.RestStatus
 import org.opensearch.search.builder.SearchSourceBuilder
 import org.opensearch.search.sort.SortOrder
 import java.util.concurrent.TimeUnit
@@ -62,7 +67,7 @@ import java.util.concurrent.TimeUnit
  */
 internal object NotebooksIndex {
     private val log by logger(NotebooksIndex::class.java)
-    const val OBSERVABILITY_INDEX_NAME = ".opensearch-notebooks"
+    const val INDEX_NAME = ".opensearch-notebooks"
     private const val OBSERVABILITY_MAPPING_FILE_NAME = "observability-mapping.yml"
     private const val OBSERVABILITY_SETTINGS_FILE_NAME = "observability-settings.yml"
     private const val MAPPING_TYPE = "_doc"
@@ -89,16 +94,16 @@ internal object NotebooksIndex {
             val classLoader = NotebooksIndex::class.java.classLoader
             val indexMappingSource = classLoader.getResource(OBSERVABILITY_MAPPING_FILE_NAME)?.readText()!!
             val indexSettingsSource = classLoader.getResource(OBSERVABILITY_SETTINGS_FILE_NAME)?.readText()!!
-            val request = CreateIndexRequest(OBSERVABILITY_INDEX_NAME)
+            val request = CreateIndexRequest(INDEX_NAME)
                 .mapping(MAPPING_TYPE, indexMappingSource, XContentType.YAML)
                 .settings(indexSettingsSource, XContentType.YAML)
             try {
                 val actionFuture = client.admin().indices().create(request)
                 val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
                 if (response.isAcknowledged) {
-                    log.info("$LOG_PREFIX:Index $OBSERVABILITY_INDEX_NAME creation Acknowledged")
+                    log.info("$LOG_PREFIX:Index $INDEX_NAME creation Acknowledged")
                 } else {
-                    throw IllegalStateException("$LOG_PREFIX:Index $OBSERVABILITY_INDEX_NAME creation not Acknowledged")
+                    throw IllegalStateException("$LOG_PREFIX:Index $INDEX_NAME creation not Acknowledged")
                 }
             } catch (exception: Exception) {
                 if (exception !is ResourceAlreadyExistsException && exception.cause !is ResourceAlreadyExistsException) {
@@ -106,7 +111,7 @@ internal object NotebooksIndex {
                 }
             }
         } else {
-            // else if index mapping is old
+            // else if index mapping is old variable is true
             // TODO update mapping here
         }
     }
@@ -117,7 +122,7 @@ internal object NotebooksIndex {
      */
     private fun isIndexExists(): Boolean {
         val clusterState = clusterService.state()
-        return clusterState.routingTable.hasIndex(OBSERVABILITY_INDEX_NAME)
+        return clusterState.routingTable.hasIndex(INDEX_NAME)
     }
 
     /**
@@ -128,7 +133,7 @@ internal object NotebooksIndex {
      */
     fun createNotebook(notebookDetails: NotebookDetails): String? {
         createIndex()
-        val indexRequest = IndexRequest(OBSERVABILITY_INDEX_NAME)
+        val indexRequest = IndexRequest(INDEX_NAME)
             .source(notebookDetails.toXContent())
             .create(true)
         val actionFuture = client.index(indexRequest)
@@ -148,7 +153,7 @@ internal object NotebooksIndex {
      */
     fun getNotebook(id: String): NotebookDetails? {
         createIndex()
-        val getRequest = GetRequest(OBSERVABILITY_INDEX_NAME).id(id)
+        val getRequest = GetRequest(INDEX_NAME).id(id)
         val actionFuture = client.get(getRequest)
         val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
         return if (response.sourceAsString == null) {
@@ -197,7 +202,7 @@ internal object NotebooksIndex {
         println(query)
         sourceBuilder.query(query)
         val searchRequest = SearchRequest()
-            .indices(OBSERVABILITY_INDEX_NAME)
+            .indices(INDEX_NAME)
             .source(sourceBuilder)
         val actionFuture = client.search(searchRequest)
         val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
@@ -220,7 +225,7 @@ internal object NotebooksIndex {
     fun updateNotebook(id: String, notebookDetails: NotebookDetails): Boolean {
         createIndex()
         val updateRequest = UpdateRequest()
-            .index(OBSERVABILITY_INDEX_NAME)
+            .index(INDEX_NAME)
             .id(id)
             .doc(notebookDetails.toXContent())
             .fetchSource(true)
@@ -240,7 +245,7 @@ internal object NotebooksIndex {
     fun deleteNotebook(id: String): Boolean {
         createIndex()
         val deleteRequest = DeleteRequest()
-            .index(OBSERVABILITY_INDEX_NAME)
+            .index(INDEX_NAME)
             .id(id)
         val actionFuture = client.delete(deleteRequest)
         val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
@@ -250,12 +255,14 @@ internal object NotebooksIndex {
         return response.result == DocWriteResponse.Result.DELETED
     }
 
+    // ===================================== new methods
+
     fun create(observabilityObjectDoc: ObservabilityObjectDoc): String? {
         createIndex()
         val xContent = observabilityObjectDoc.toXContent()
         println("debug index create")
         println(xContent)
-        val indexRequest = IndexRequest(OBSERVABILITY_INDEX_NAME)
+        val indexRequest = IndexRequest(INDEX_NAME)
             .source(xContent)
             .create(true)
         val actionFuture = client.index(indexRequest)
@@ -266,5 +273,72 @@ internal object NotebooksIndex {
         } else {
             response.id
         }
+    }
+
+    fun getObservabilityObject(id: String): ObservabilityObjectDocInfo? {
+        createIndex()
+        val getRequest = GetRequest(INDEX_NAME).id(id)
+        val actionFuture = client.get(getRequest)
+        val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
+        return parseObservabilityObjectDoc(id, response)
+    }
+
+    fun getObservabilityObjects(ids: Set<String>): List<ObservabilityObjectDocInfo> {
+        createIndex()
+        val getRequest = MultiGetRequest()
+        ids.forEach { getRequest.add(INDEX_NAME, it) }
+        val actionFuture = client.multiGet(getRequest)
+        val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
+        return response.responses.mapNotNull { parseObservabilityObjectDoc(it.id, it.response) }
+    }
+
+    private fun parseObservabilityObjectDoc(id: String, response: GetResponse): ObservabilityObjectDocInfo? {
+        return if (response.sourceAsString == null) {
+            log.warn("$LOG_PREFIX:getObservabilityObject - $id not found; response:$response")
+            null
+        } else {
+            val parser = XContentType.JSON.xContent().createParser(
+                NamedXContentRegistry.EMPTY,
+                LoggingDeprecationHandler.INSTANCE,
+                response.sourceAsString
+            )
+            parser.nextToken()
+            val doc = ObservabilityObjectDoc.parse(parser)
+            ObservabilityObjectDocInfo(id, response.version, response.seqNo, response.primaryTerm, doc)
+        }
+    }
+
+    fun deleteObservabilityObject(id: String): Boolean {
+        createIndex()
+        val deleteRequest = DeleteRequest()
+            .index(INDEX_NAME)
+            .id(id)
+        val actionFuture = client.delete(deleteRequest)
+        val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
+        if (response.result != DocWriteResponse.Result.DELETED) {
+            log.warn("$LOG_PREFIX:deleteObservabilityObject failed for $id; response:$response")
+        }
+        return response.result == DocWriteResponse.Result.DELETED
+    }
+
+    fun deleteObservabilityObjects(ids: Set<String>): Map<String, RestStatus> {
+        createIndex()
+        val bulkRequest = BulkRequest()
+        ids.forEach {
+            val deleteRequest = DeleteRequest()
+                .index(INDEX_NAME)
+                .id(it)
+            bulkRequest.add(deleteRequest)
+        }
+        val actionFuture = client.bulk(bulkRequest)
+        val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
+        val mutableMap = mutableMapOf<String, RestStatus>()
+        response.forEach {
+            mutableMap[it.id] = it.status()
+            if (it.isFailed) {
+                log.warn("$LOG_PREFIX:deleteObservabilityObjects failed for ${it.id}; response:${it.failureMessage}")
+            }
+        }
+        return mutableMap
     }
 }

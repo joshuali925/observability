@@ -384,6 +384,7 @@ internal data class Notebook(
          * {@inheritDoc}
          */
         override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
+            val xContentParams = params ?: RestTag.REST_OUTPUT_PARAMS
             builder!!
             builder.startObject()
                 .field(RESULT_TAG, result)

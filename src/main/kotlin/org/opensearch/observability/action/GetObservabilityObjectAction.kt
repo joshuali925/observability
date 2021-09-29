@@ -40,7 +40,7 @@ import org.opensearch.transport.TransportService
 /**
  * Get notebook transport action
  */
-internal class GetNotebookAction @Inject constructor(
+internal class GetObservabilityObjectAction @Inject constructor(
     transportService: TransportService,
     client: Client,
     actionFilters: ActionFilters,

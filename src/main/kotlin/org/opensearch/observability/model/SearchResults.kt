@@ -27,9 +27,6 @@
 
 package org.opensearch.observability.model
 
-import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
-import org.opensearch.observability.model.RestTag.REST_OUTPUT_PARAMS
-import org.opensearch.observability.util.logger
 import org.apache.lucene.search.TotalHits
 import org.apache.lucene.search.TotalHits.Relation
 import org.apache.lucene.search.TotalHits.Relation.EQUAL_TO
@@ -43,7 +40,11 @@ import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParserUtils
 import org.opensearch.common.xcontent.XContentType
+import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
+import org.opensearch.observability.model.RestTag.REST_OUTPUT_PARAMS
+import org.opensearch.observability.util.logger
 
+// internal abstract class SearchResults<ItemClass : BaseModel> : BaseModel {
 internal abstract class SearchResults<ItemClass : ToXContentObject> : ToXContentObject {
     val startIndex: Long
     val totalHits: Long

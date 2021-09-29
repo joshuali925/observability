@@ -27,18 +27,19 @@
 package org.opensearch.observability.resthandler
 
 import org.opensearch.observability.ObservabilityPlugin.Companion.BASE_NOTEBOOKS_URI
-import org.opensearch.observability.action.DeleteNotebookAction
-import org.opensearch.observability.action.GetNotebookAction
+import org.opensearch.observability.action.DeleteObservabilityObjectAction
+import org.opensearch.observability.action.GetObservabilityObjectAction
 import org.opensearch.observability.action.NotebookActions
 import org.opensearch.observability.action.UpdateNotebookAction
-import org.opensearch.observability.model.notebook.DeleteNotebookRequest
 import org.opensearch.observability.model.notebook.GetNotebookRequest
-import org.opensearch.observability.model.RestTag.NOTEBOOK_ID_FIELD
 import org.opensearch.observability.model.notebook.UpdateNotebookRequest
 import org.opensearch.observability.util.contentParserNextToken
 import org.opensearch.client.node.NodeClient
 import org.opensearch.observability.action.CreateObservabilityObjectAction
 import org.opensearch.observability.model.CreateObservabilityObjectRequest
+import org.opensearch.observability.model.DeleteObservabilityObjectRequest
+import org.opensearch.observability.model.RestTag.ID_FIELD
+import org.opensearch.observability.model.RestTag.ID_LIST_FIELD
 import org.opensearch.rest.BaseRestHandler
 import org.opensearch.rest.BaseRestHandler.RestChannelConsumer
 import org.opensearch.rest.BytesRestResponse
@@ -85,21 +86,22 @@ internal class NotebookRestHandler : BaseRestHandler() {
              * Request body: Ref [org.opensearch.observability.model.UpdateNotebookRequest]
              * Response body: Ref [org.opensearch.observability.model.UpdateNotebookResponse]
              */
-            Route(PUT, "$NOTEBOOKS_URL/{$NOTEBOOK_ID_FIELD}"),
+            Route(PUT, "$NOTEBOOKS_URL/{$ID_FIELD}"),
             /**
              * Get a notebook
              * Request URL: GET NOTEBOOKS_URL/{notebookId}
              * Request body: Ref [org.opensearch.observability.model.GetNotebookRequest]
              * Response body: Ref [org.opensearch.observability.model.GetNotebookResponse]
              */
-            Route(GET, "$NOTEBOOKS_URL/{$NOTEBOOK_ID_FIELD}"),
+            Route(GET, "$NOTEBOOKS_URL/{$ID_FIELD}"),
             /**
              * Delete notebook
              * Request URL: DELETE NOTEBOOKS_URL/{notebookId}
              * Request body: Ref [org.opensearch.observability.model.DeleteNotebookRequest]
              * Response body: Ref [org.opensearch.observability.model.DeleteNotebookResponse]
              */
-            Route(DELETE, "$NOTEBOOKS_URL/{$NOTEBOOK_ID_FIELD}")
+            Route(DELETE, "$NOTEBOOKS_URL/{$ID_FIELD}"),
+            Route(DELETE, "$NOTEBOOKS_URL")
         )
     }
 
@@ -107,7 +109,7 @@ internal class NotebookRestHandler : BaseRestHandler() {
      * {@inheritDoc}
      */
     override fun responseParams(): Set<String> {
-        return setOf(NOTEBOOK_ID_FIELD)
+        return setOf(ID_FIELD, ID_LIST_FIELD)
     }
 
     /**
@@ -125,23 +127,37 @@ internal class NotebookRestHandler : BaseRestHandler() {
             PUT -> RestChannelConsumer {
                 client.execute(
                     UpdateNotebookAction.ACTION_TYPE,
-                    UpdateNotebookRequest(request.contentParserNextToken(), request.param(NOTEBOOK_ID_FIELD)),
+                    UpdateNotebookRequest(request.contentParserNextToken(), request.param(ID_FIELD)),
                     RestResponseToXContentListener(it)
                 )
             }
             GET -> RestChannelConsumer {
                 client.execute(
-                    GetNotebookAction.ACTION_TYPE,
-                    GetNotebookRequest(request.param(NOTEBOOK_ID_FIELD)),
+                    GetObservabilityObjectAction.ACTION_TYPE,
+                    GetNotebookRequest(request.param(ID_FIELD)),
                     RestResponseToXContentListener(it)
                 )
             }
             DELETE -> RestChannelConsumer {
-                client.execute(
-                    DeleteNotebookAction.ACTION_TYPE,
-                    DeleteNotebookRequest(request.param(NOTEBOOK_ID_FIELD)),
-                    RestResponseToXContentListener(it)
-                )
+                val objectId: String? = request.param(ID_FIELD)
+                val objectIdSet: Set<String> =
+                    request.paramAsStringArray(ID_LIST_FIELD, arrayOf(objectId))
+                        .filter { s -> !s.isNullOrBlank() }
+                        .toSet()
+                if (objectIdSet.isEmpty()) {
+                    it.sendResponse(
+                        BytesRestResponse(
+                            RestStatus.BAD_REQUEST,
+                            "either $ID_FIELD or $ID_LIST_FIELD is required"
+                        )
+                    )
+                } else {
+                    client.execute(
+                        DeleteObservabilityObjectAction.ACTION_TYPE,
+                        DeleteObservabilityObjectRequest(objectIdSet),
+                        RestResponseToXContentListener(it)
+                    )
+                }
             }
             else -> RestChannelConsumer {
                 it.sendResponse(BytesRestResponse(RestStatus.METHOD_NOT_ALLOWED, "${request.method()} is not allowed"))

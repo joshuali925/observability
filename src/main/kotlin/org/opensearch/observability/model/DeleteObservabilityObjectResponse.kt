@@ -18,23 +18,29 @@ import org.opensearch.common.xcontent.ToXContent
 import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParserUtils
+import org.opensearch.commons.notifications.NotificationConstants
+import org.opensearch.commons.utils.STRING_READER
+import org.opensearch.commons.utils.STRING_WRITER
+import org.opensearch.commons.utils.enumReader
+import org.opensearch.commons.utils.enumWriter
 import org.opensearch.commons.utils.logger
-import org.opensearch.observability.model.RestTag.ID_FIELD
+import org.opensearch.observability.model.RestTag.DELETE_RESPONSE_LIST_TAG
+import org.opensearch.rest.RestStatus
 import java.io.IOException
 
 /**
  * Action Response for creating new configuration.
  */
-internal class CreateObservabilityObjectResponse : BaseResponse {
-    val objectId: String
+internal class DeleteObservabilityObjectResponse : BaseResponse {
+    val objectIdToStatus: Map<String, RestStatus>
 
     companion object {
-        private val log by logger(CreateObservabilityObjectResponse::class.java)
+        private val log by logger(DeleteObservabilityObjectResponse::class.java)
 
         /**
          * reader to create instance of class from writable.
          */
-        val reader = Writeable.Reader { CreateObservabilityObjectResponse(it) }
+        val reader = Writeable.Reader { DeleteObservabilityObjectResponse(it) }
 
         /**
          * Creator used in REST communication.
@@ -42,8 +48,8 @@ internal class CreateObservabilityObjectResponse : BaseResponse {
          */
         @JvmStatic
         @Throws(IOException::class)
-        fun parse(parser: XContentParser): CreateObservabilityObjectResponse {
-            var objectId: String? = null
+        fun parse(parser: XContentParser): DeleteObservabilityObjectResponse {
+            var objectIdToStatus: Map<String, RestStatus>? = null
 
             XContentParserUtils.ensureExpectedToken(
                 XContentParser.Token.START_OBJECT,
@@ -54,24 +60,28 @@ internal class CreateObservabilityObjectResponse : BaseResponse {
                 val fieldName = parser.currentName()
                 parser.nextToken()
                 when (fieldName) {
-                    ID_FIELD -> objectId = parser.text()
+                    DELETE_RESPONSE_LIST_TAG -> objectIdToStatus = convertMapStrings(parser.mapStrings())
                     else -> {
                         parser.skipChildren()
-                        log.info("Unexpected field: $fieldName, while parsing CreateObservabilityObjectResponse")
+                        log.info("Unexpected field: $fieldName, while parsing DeleteObservabilityObjectResponse")
                     }
                 }
             }
-            objectId ?: throw IllegalArgumentException("$ID_FIELD field absent")
-            return CreateObservabilityObjectResponse(objectId)
+            objectIdToStatus ?: throw IllegalArgumentException("$DELETE_RESPONSE_LIST_TAG field absent")
+            return DeleteObservabilityObjectResponse(objectIdToStatus)
+        }
+
+        private fun convertMapStrings(inputMap: Map<String, String>): Map<String, RestStatus> {
+            return inputMap.mapValues { RestStatus.valueOf(it.value) }
         }
     }
 
     /**
      * constructor for creating the class
-     * @param id the id of the created notification configuration
+     * @param objectIdToStatus the ids of the deleted observability object with status
      */
-    constructor(id: String) {
-        this.objectId = id
+    constructor(objectIdToStatus: Map<String, RestStatus>) {
+        this.objectIdToStatus = objectIdToStatus
     }
 
     /**
@@ -79,7 +89,7 @@ internal class CreateObservabilityObjectResponse : BaseResponse {
      */
     @Throws(IOException::class)
     constructor(input: StreamInput) : super(input) {
-        objectId = input.readString()
+        objectIdToStatus = input.readMap(STRING_READER, enumReader(RestStatus::class.java))
     }
 
     /**
@@ -87,7 +97,7 @@ internal class CreateObservabilityObjectResponse : BaseResponse {
      */
     @Throws(IOException::class)
     override fun writeTo(output: StreamOutput) {
-        output.writeString(objectId)
+        output.writeMap(objectIdToStatus, STRING_WRITER, enumWriter(RestStatus::class.java))
     }
 
     /**
@@ -96,7 +106,16 @@ internal class CreateObservabilityObjectResponse : BaseResponse {
     override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
         builder!!
         return builder.startObject()
-            .field(ID_FIELD, objectId)
+            .field(NotificationConstants.DELETE_RESPONSE_LIST_TAG, objectIdToStatus)
             .endObject()
+    }
+
+    override fun getStatus(): RestStatus {
+        val distinctStatus = objectIdToStatus.values.distinct()
+        return when {
+            distinctStatus.size > 1 -> RestStatus.MULTI_STATUS
+            distinctStatus.size == 1 -> distinctStatus[0]
+            else -> RestStatus.NOT_MODIFIED
+        }
     }
 }

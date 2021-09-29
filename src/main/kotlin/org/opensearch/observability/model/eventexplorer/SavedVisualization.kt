@@ -23,7 +23,6 @@ import org.opensearch.commons.notifications.model.XParser
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.model.BaseModel
 import org.opensearch.observability.model.BaseObjectData
-import org.opensearch.observability.model.RestTag
 import org.opensearch.observability.util.fieldIfNotNull
 import org.opensearch.observability.util.logger
 import org.opensearch.observability.util.stringList
@@ -147,7 +146,6 @@ internal data class SavedVisualization(
      * {@inheritDoc}
      */
     override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
-        val xContentParams = params ?: RestTag.REST_OUTPUT_PARAMS
         builder!!
         builder.startObject()
             .fieldIfNotNull(NAME_TAG, name)

@@ -11,39 +11,47 @@
 
 package org.opensearch.observability.model
 
+import org.opensearch.action.ActionRequest
+import org.opensearch.action.ActionRequestValidationException
+import org.opensearch.action.ValidateActions
 import org.opensearch.common.io.stream.StreamInput
 import org.opensearch.common.io.stream.StreamOutput
 import org.opensearch.common.io.stream.Writeable
 import org.opensearch.common.xcontent.ToXContent
+import org.opensearch.common.xcontent.ToXContentObject
 import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParserUtils
 import org.opensearch.commons.utils.logger
+import org.opensearch.commons.utils.stringList
+import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.model.RestTag.ID_FIELD
+import org.opensearch.observability.model.RestTag.ID_LIST_FIELD
 import java.io.IOException
 
 /**
- * Action Response for creating new configuration.
+ * Action request for creating new configuration.
  */
-internal class CreateObservabilityObjectResponse : BaseResponse {
-    val objectId: String
+internal class DeleteObservabilityObjectRequest : ActionRequest, ToXContentObject {
+    val objectIds: Set<String>
 
     companion object {
-        private val log by logger(CreateObservabilityObjectResponse::class.java)
+        private val log by logger(DeleteObservabilityObjectRequest::class.java)
 
         /**
          * reader to create instance of class from writable.
          */
-        val reader = Writeable.Reader { CreateObservabilityObjectResponse(it) }
+        val reader = Writeable.Reader { DeleteObservabilityObjectRequest(it) }
 
         /**
          * Creator used in REST communication.
          * @param parser XContentParser to deserialize data from.
+         * @param id optional id to use if missed in XContent
          */
         @JvmStatic
         @Throws(IOException::class)
-        fun parse(parser: XContentParser): CreateObservabilityObjectResponse {
-            var objectId: String? = null
+        fun parse(parser: XContentParser): DeleteObservabilityObjectRequest {
+            var objectIds: Set<String>? = null
 
             XContentParserUtils.ensureExpectedToken(
                 XContentParser.Token.START_OBJECT,
@@ -54,24 +62,24 @@ internal class CreateObservabilityObjectResponse : BaseResponse {
                 val fieldName = parser.currentName()
                 parser.nextToken()
                 when (fieldName) {
-                    ID_FIELD -> objectId = parser.text()
+                    ID_LIST_FIELD -> objectIds = parser.stringList().toSet()
                     else -> {
                         parser.skipChildren()
-                        log.info("Unexpected field: $fieldName, while parsing CreateObservabilityObjectResponse")
+                        log.info("$LOG_PREFIX:Skipping Unknown field $fieldName")
                     }
                 }
             }
-            objectId ?: throw IllegalArgumentException("$ID_FIELD field absent")
-            return CreateObservabilityObjectResponse(objectId)
+            objectIds ?: throw IllegalArgumentException("$ID_FIELD field absent")
+            return DeleteObservabilityObjectRequest(objectIds)
         }
     }
 
     /**
      * constructor for creating the class
-     * @param id the id of the created notification configuration
+     * @param objectIds the id of the observability object
      */
-    constructor(id: String) {
-        this.objectId = id
+    constructor(objectIds: Set<String>) {
+        this.objectIds = objectIds
     }
 
     /**
@@ -79,7 +87,7 @@ internal class CreateObservabilityObjectResponse : BaseResponse {
      */
     @Throws(IOException::class)
     constructor(input: StreamInput) : super(input) {
-        objectId = input.readString()
+        objectIds = input.readStringList().toSet()
     }
 
     /**
@@ -87,7 +95,8 @@ internal class CreateObservabilityObjectResponse : BaseResponse {
      */
     @Throws(IOException::class)
     override fun writeTo(output: StreamOutput) {
-        output.writeString(objectId)
+        super.writeTo(output)
+        output.writeStringCollection(objectIds)
     }
 
     /**
@@ -96,7 +105,18 @@ internal class CreateObservabilityObjectResponse : BaseResponse {
     override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
         builder!!
         return builder.startObject()
-            .field(ID_FIELD, objectId)
+            .field(ID_LIST_FIELD, objectIds)
             .endObject()
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    override fun validate(): ActionRequestValidationException? {
+        var validationException: ActionRequestValidationException? = null
+        if (objectIds.isNullOrEmpty()) {
+            validationException = ValidateActions.addValidationError("objectIds is null or empty", validationException)
+        }
+        return validationException
     }
 }

@@ -26,9 +26,9 @@
  */
 package org.opensearch.observability
 
-import org.opensearch.observability.action.DeleteNotebookAction
+import org.opensearch.observability.action.DeleteObservabilityObjectAction
 import org.opensearch.observability.action.GetAllNotebooksAction
-import org.opensearch.observability.action.GetNotebookAction
+import org.opensearch.observability.action.GetObservabilityObjectAction
 import org.opensearch.observability.action.UpdateNotebookAction
 import org.opensearch.observability.index.NotebooksIndex
 import org.opensearch.observability.resthandler.NotebookListRestHandler
@@ -125,9 +125,9 @@ class ObservabilityPlugin : Plugin(), ActionPlugin {
     override fun getActions(): List<ActionPlugin.ActionHandler<out ActionRequest, out ActionResponse>> {
         return listOf(
             ActionPlugin.ActionHandler(CreateObservabilityObjectAction.ACTION_TYPE, CreateObservabilityObjectAction::class.java),
-            ActionPlugin.ActionHandler(DeleteNotebookAction.ACTION_TYPE, DeleteNotebookAction::class.java),
+            ActionPlugin.ActionHandler(DeleteObservabilityObjectAction.ACTION_TYPE, DeleteObservabilityObjectAction::class.java),
             ActionPlugin.ActionHandler(GetAllNotebooksAction.ACTION_TYPE, GetAllNotebooksAction::class.java),
-            ActionPlugin.ActionHandler(GetNotebookAction.ACTION_TYPE, GetNotebookAction::class.java),
+            ActionPlugin.ActionHandler(GetObservabilityObjectAction.ACTION_TYPE, GetObservabilityObjectAction::class.java),
             ActionPlugin.ActionHandler(UpdateNotebookAction.ACTION_TYPE, UpdateNotebookAction::class.java)
         )
     }
