@@ -62,8 +62,8 @@ internal object RestTag {
     const val SAVED_QUERY_DETAILS_FIELD = "savedQueryDetails"
 
     const val SAVED_VISUALIZATION_LIST_FIELD = "savedVisualizationDetailsList"
-    const val SAVED_VISUALIZATION_FIELD = "savedVisualizationQuery"
-    const val SAVED_VISUALIZATION_ID_FIELD = "savedVisualizationQueryId"
+    const val SAVED_VISUALIZATION_FIELD = "savedVisualization"
+    const val SAVED_VISUALIZATION_ID_FIELD = "savedVisualizationId"
     const val SAVED_VISUALIZATION_DETAILS_FIELD = "savedVisualizationDetails"
 
     const val DELETE_RESPONSE_LIST_TAG = "delete_response_list"
