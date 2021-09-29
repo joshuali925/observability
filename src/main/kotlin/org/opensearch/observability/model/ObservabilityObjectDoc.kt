@@ -25,6 +25,7 @@ data class ObservabilityObjectDoc(
     val createdTime: Instant,
     val tenant: String,
     val access: List<String>, // "User:user", "Role:sample_role", "BERole:sample_backend_role"
+    val type: ObservabilityObjectType,
     val objectData: BaseObjectData?
 ) : ToXContent {
 
@@ -43,6 +44,7 @@ data class ObservabilityObjectDoc(
             var createdTime: Instant? = null
             var tenant: String? = null
             var access: List<String> = listOf()
+            var type: ObservabilityObjectType? = null
             var objectData: BaseObjectData? = null
 
             XContentParserUtils.ensureExpectedToken(
@@ -64,6 +66,7 @@ data class ObservabilityObjectDoc(
                         if (objectTypeForTag != ObservabilityObjectType.NONE && objectData == null) {
                             objectData =
                                 ObservabilityObjectDataProperties.createObjectData(objectTypeForTag, parser)
+                            type = objectTypeForTag
                         } else {
                             parser.skipChildren()
                             log.info("Unexpected field: $fieldName, while parsing ObservabilityObjectDoc")
@@ -74,8 +77,9 @@ data class ObservabilityObjectDoc(
             updatedTime ?: throw IllegalArgumentException("$UPDATED_TIME_FIELD field absent")
             createdTime ?: throw IllegalArgumentException("$CREATED_TIME_FIELD field absent")
             tenant = tenant ?: UserAccessManager.DEFAULT_TENANT
+            type ?: throw IllegalArgumentException("Object data field absent")
             objectData ?: throw IllegalArgumentException("Object data field absent")
-            return ObservabilityObjectDoc(updatedTime, createdTime, tenant, access, objectData)
+            return ObservabilityObjectDoc(updatedTime, createdTime, tenant, access, type, objectData)
         }
     }
 
@@ -98,7 +102,7 @@ data class ObservabilityObjectDoc(
             .field(CREATED_TIME_FIELD, createdTime.toEpochMilli())
             .field(TENANT_FIELD, tenant)
             .field(ACCESS_LIST_FIELD, access)
-            .field(NOTEBOOK_FIELD, objectData)
+            .field(type.tag, objectData)
             .endObject()
     }
 }

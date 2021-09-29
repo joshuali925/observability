@@ -68,6 +68,7 @@ internal object NotebookActions {
             currentTime,
             UserAccessManager.getUserTenant(user),
             UserAccessManager.getAllAccessInfo(user),
+            request.type,
             request.objectData
         )
         val docId = NotebooksIndex.create(objectDoc)

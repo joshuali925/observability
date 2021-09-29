@@ -25,7 +25,6 @@ import org.opensearch.commons.notifications.action.CreateNotificationConfigRespo
 import org.opensearch.commons.utils.fieldIfNotNull
 import org.opensearch.commons.utils.logger
 import org.opensearch.observability.model.RestTag.ID_FIELD
-import org.opensearch.observability.model.RestTag.NOTEBOOK_FIELD
 import java.io.IOException
 
 /**
@@ -33,6 +32,7 @@ import java.io.IOException
  */
 internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObject {
     val objectId: String?
+    val type: ObservabilityObjectType
     val objectData: BaseObjectData?
 
     companion object {
@@ -52,6 +52,7 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
         @Throws(IOException::class)
         fun parse(parser: XContentParser, id: String? = null): CreateObservabilityObjectRequest {
             var objectId: String? = id
+            var type: ObservabilityObjectType? = null
             var baseObjectData: BaseObjectData? = null
 
             XContentParserUtils.ensureExpectedToken(
@@ -69,6 +70,7 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
                         if (objectTypeForTag != ObservabilityObjectType.NONE && baseObjectData == null) {
                             baseObjectData =
                                 ObservabilityObjectDataProperties.createObjectData(objectTypeForTag, parser)
+                            type = objectTypeForTag
                         } else {
                             parser.skipChildren()
                             log.info("Unexpected field: $fieldName, while parsing CreateObservabilityObjectRequest")
@@ -79,8 +81,9 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
 //            if (configId != null) {
 //                validateId(configId)
 //            }
+            type ?: throw IllegalArgumentException("Object data field absent")
             baseObjectData ?: throw IllegalArgumentException("Object data field absent")
-            return CreateObservabilityObjectRequest(baseObjectData, objectId)
+            return CreateObservabilityObjectRequest(baseObjectData, type, objectId)
         }
     }
 
@@ -91,7 +94,7 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
         builder!!
         return builder.startObject()
             .fieldIfNotNull(ID_FIELD, objectId)
-            .field(NOTEBOOK_FIELD, objectData)
+            .field(type.tag, objectData)
             .endObject()
     }
 
@@ -100,8 +103,9 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
      * @param objectData the notification config object
      * @param objectId optional id to use for notification config object
      */
-    constructor(objectData: BaseObjectData, objectId: String? = null) {
+    constructor(objectData: BaseObjectData, type: ObservabilityObjectType, objectId: String? = null) {
         this.objectData = objectData
+        this.type = type
         this.objectId = objectId
     }
 
@@ -111,6 +115,7 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
     @Throws(IOException::class)
     constructor(input: StreamInput) : super(input) {
         objectId = input.readOptionalString()
+        type = input.readEnum(ObservabilityObjectType::class.java)
         objectData = input.readOptionalWriteable(
             ObservabilityObjectDataProperties.getReaderForObjectType(
                 input.readEnum(
@@ -127,6 +132,7 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
     override fun writeTo(output: StreamOutput) {
         super.writeTo(output)
         output.writeOptionalString(objectId)
+        output.writeEnum(type)
         output.writeOptionalWriteable(objectData)
     }
 
