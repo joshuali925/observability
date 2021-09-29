@@ -26,7 +26,6 @@ import org.opensearch.commons.utils.fieldIfNotNull
 import org.opensearch.commons.utils.logger
 import org.opensearch.observability.model.RestTag.ID_FIELD
 import org.opensearch.observability.model.RestTag.NOTEBOOK_FIELD
-import org.opensearch.observability.model.RestTag.OBJECT_FIELD
 import java.io.IOException
 
 /**
@@ -34,7 +33,7 @@ import java.io.IOException
  */
 internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObject {
     val objectId: String?
-    val observabilityObject: ObservabilityObject
+    val objectData: BaseObjectData?
 
     companion object {
         private val log by logger(CreateNotificationConfigResponse::class.java)
@@ -53,7 +52,7 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
         @Throws(IOException::class)
         fun parse(parser: XContentParser, id: String? = null): CreateObservabilityObjectRequest {
             var objectId: String? = id
-            var observabilityObject: ObservabilityObject? = null
+            var baseObjectData: BaseObjectData? = null
 
             XContentParserUtils.ensureExpectedToken(
                 XContentParser.Token.START_OBJECT,
@@ -62,24 +61,26 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
             )
             while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
                 val fieldName = parser.currentName()
-                // TODO do not consume top level field
                 parser.nextToken()
                 when (fieldName) {
-                    NOTEBOOK_FIELD -> {
-                        println("[CreateObservabilityObjectRequest] going into observability object parse")
-                        observabilityObject = ObservabilityObject.parse(parser)
-                    }
                     else -> {
-                        parser.skipChildren()
-                        log.info("Unexpected field: $fieldName, while parsing CreateObservabilityObjectRequest")
+                        println("[ObservabilityObject] in object parsing field $fieldName")
+                        val objectTypeForTag = ObservabilityObjectType.fromTagOrDefault(fieldName)
+                        if (objectTypeForTag != ObservabilityObjectType.NONE && baseObjectData == null) {
+                            baseObjectData =
+                                ObservabilityObjectDataProperties.createObjectData(objectTypeForTag, parser)
+                        } else {
+                            parser.skipChildren()
+                            log.info("Unexpected field: $fieldName, while parsing CreateObservabilityObjectRequest")
+                        }
                     }
                 }
             }
-            observabilityObject ?: throw IllegalArgumentException("object field absent")
 //            if (configId != null) {
 //                validateId(configId)
 //            }
-            return CreateObservabilityObjectRequest(observabilityObject, objectId)
+            baseObjectData ?: throw IllegalArgumentException("Object data field absent")
+            return CreateObservabilityObjectRequest(baseObjectData, objectId)
         }
     }
 
@@ -90,18 +91,18 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
         builder!!
         return builder.startObject()
             .fieldIfNotNull(ID_FIELD, objectId)
-            .field(NOTEBOOK_FIELD, observabilityObject)
+            .field(NOTEBOOK_FIELD, objectData)
             .endObject()
     }
 
     /**
      * constructor for creating the class
-     * @param observabilityObject the notification config object
-     * @param configId optional id to use for notification config object
+     * @param objectData the notification config object
+     * @param objectId optional id to use for notification config object
      */
-    constructor(observabilityObject: ObservabilityObject, objectId: String? = null) {
+    constructor(objectData: BaseObjectData, objectId: String? = null) {
+        this.objectData = objectData
         this.objectId = objectId
-        this.observabilityObject = observabilityObject
     }
 
     /**
@@ -110,7 +111,13 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
     @Throws(IOException::class)
     constructor(input: StreamInput) : super(input) {
         objectId = input.readOptionalString()
-        observabilityObject = ObservabilityObject.reader.read(input)!!
+        objectData = input.readOptionalWriteable(
+            ObservabilityObjectDataProperties.getReaderForObjectType(
+                input.readEnum(
+                    ObservabilityObjectType::class.java
+                )
+            )
+        )
     }
 
     /**
@@ -120,7 +127,7 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
     override fun writeTo(output: StreamOutput) {
         super.writeTo(output)
         output.writeOptionalString(objectId)
-        observabilityObject.writeTo(output)
+        output.writeOptionalWriteable(objectData)
     }
 
     /**

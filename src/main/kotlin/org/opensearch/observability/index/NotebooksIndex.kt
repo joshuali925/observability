@@ -107,6 +107,9 @@ internal object NotebooksIndex {
                     throw exception
                 }
             }
+        } else {
+            // else if index mapping is old
+            // TODO update mapping here
         }
     }
 

@@ -9,6 +9,7 @@ import org.opensearch.commons.utils.logger
 import org.opensearch.commons.utils.stringList
 import org.opensearch.observability.model.RestTag.ACCESS_LIST_FIELD
 import org.opensearch.observability.model.RestTag.CREATED_TIME_FIELD
+import org.opensearch.observability.model.RestTag.NOTEBOOK_FIELD
 import org.opensearch.observability.model.RestTag.OBJECT_FIELD
 import org.opensearch.observability.model.RestTag.TENANT_FIELD
 import org.opensearch.observability.model.RestTag.UPDATED_TIME_FIELD
@@ -24,7 +25,7 @@ data class ObservabilityObjectDoc(
     val createdTime: Instant,
     val tenant: String,
     val access: List<String>, // "User:user", "Role:sample_role", "BERole:sample_backend_role"
-    val observabilityObject: ObservabilityObject
+    val objectData: BaseObjectData?
 ) : ToXContent {
 
     companion object {
@@ -42,7 +43,7 @@ data class ObservabilityObjectDoc(
             var createdTime: Instant? = null
             var tenant: String? = null
             var access: List<String> = listOf()
-            var observabilityObject: ObservabilityObject? = null
+            var objectData: BaseObjectData? = null
 
             XContentParserUtils.ensureExpectedToken(
                 XContentParser.Token.START_OBJECT,
@@ -57,18 +58,24 @@ data class ObservabilityObjectDoc(
                     CREATED_TIME_FIELD -> createdTime = Instant.ofEpochMilli(parser.longValue())
                     TENANT_FIELD -> tenant = parser.text()
                     ACCESS_LIST_FIELD -> access = parser.stringList()
-                    OBJECT_FIELD -> observabilityObject = ObservabilityObject.parse(parser)
                     else -> {
-                        parser.skipChildren()
-                        log.info("Unexpected field: $fieldName, while parsing ObservabilityObjectDoc")
+                        println("[ObservabilityObject] in object parsing field $fieldName")
+                        val objectTypeForTag = ObservabilityObjectType.fromTagOrDefault(fieldName)
+                        if (objectTypeForTag != ObservabilityObjectType.NONE && objectData == null) {
+                            objectData =
+                                ObservabilityObjectDataProperties.createObjectData(objectTypeForTag, parser)
+                        } else {
+                            parser.skipChildren()
+                            log.info("Unexpected field: $fieldName, while parsing ObservabilityObjectDoc")
+                        }
                     }
                 }
             }
             updatedTime ?: throw IllegalArgumentException("$UPDATED_TIME_FIELD field absent")
             createdTime ?: throw IllegalArgumentException("$CREATED_TIME_FIELD field absent")
             tenant = tenant ?: UserAccessManager.DEFAULT_TENANT
-            observabilityObject ?: throw IllegalArgumentException("$OBJECT_FIELD field absent")
-            return ObservabilityObjectDoc(updatedTime, createdTime, tenant, access, observabilityObject)
+            objectData ?: throw IllegalArgumentException("Object data field absent")
+            return ObservabilityObjectDoc(updatedTime, createdTime, tenant, access, objectData)
         }
     }
 
@@ -91,7 +98,7 @@ data class ObservabilityObjectDoc(
             .field(CREATED_TIME_FIELD, createdTime.toEpochMilli())
             .field(TENANT_FIELD, tenant)
             .field(ACCESS_LIST_FIELD, access)
-            .field(OBJECT_FIELD, observabilityObject)
+            .field(NOTEBOOK_FIELD, objectData)
             .endObject()
     }
 }

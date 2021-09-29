@@ -68,7 +68,7 @@ internal object NotebookActions {
             currentTime,
             UserAccessManager.getUserTenant(user),
             UserAccessManager.getAllAccessInfo(user),
-            request.observabilityObject
+            request.objectData
         )
         val docId = NotebooksIndex.create(objectDoc)
         docId ?: throw OpenSearchStatusException(
