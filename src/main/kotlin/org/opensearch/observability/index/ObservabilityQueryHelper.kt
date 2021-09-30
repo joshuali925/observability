@@ -22,18 +22,21 @@ import org.opensearch.observability.model.RestTag.NAME_FIELD
 import org.opensearch.observability.model.RestTag.QUERY_FIELD
 import org.opensearch.observability.model.RestTag.UPDATED_TIME_FIELD
 import org.opensearch.rest.RestStatus
+import org.opensearch.search.builder.SearchSourceBuilder
+import org.opensearch.search.sort.SortOrder
+import java.util.EnumSet
 
 /**
  * Helper class for Get operations.
  */
-internal class ObservabilityQueryHelper(val keyPrefix: ObservabilityObjectType) {
+internal class ObservabilityQueryHelper(private val types: EnumSet<ObservabilityObjectType>) {
     companion object {
         private val METADATA_RANGE_FIELDS = setOf(
             UPDATED_TIME_FIELD,
             CREATED_TIME_FIELD
         )
 
-        // keyword and text fields are under observability object and should be prepended with keyPrefix
+        // keyword and text fields are under observability object and should be prepended with type
         private val KEYWORD_FIELDS: Set<String> = setOf()
         private val TEXT_FIELDS = setOf(
             NAME_FIELD
@@ -46,28 +49,46 @@ internal class ObservabilityQueryHelper(val keyPrefix: ObservabilityObjectType) 
         val FILTER_PARAMS = ALL_FIELDS.union(setOf(QUERY_FIELD))
     }
 
-    fun getSortField(sortField: String?): String {
-        return if (sortField == null) {
-            UPDATED_TIME_FIELD
+    fun addSortField(sourceBuilder: SearchSourceBuilder, sortField: String?, sortOrder: SortOrder?) {
+        val order = sortOrder ?: SortOrder.ASC
+        if (sortField == null) {
+            sourceBuilder.sort(UPDATED_TIME_FIELD, order)
         } else {
+            val fields = mutableListOf<String>()
             when {
-                METADATA_RANGE_FIELDS.contains(sortField) -> "$sortField"
-                KEYWORD_FIELDS.contains(sortField) -> "$keyPrefix.$sortField"
-                TEXT_FIELDS.contains(sortField) -> "$keyPrefix.$sortField.keyword"
-                else -> throw OpenSearchStatusException("Sort on $sortField not acceptable", RestStatus.NOT_ACCEPTABLE)
+                METADATA_RANGE_FIELDS.contains(sortField) -> fields.add(sortField)
+                KEYWORD_FIELDS.contains(sortField) -> fields.addAll(types.map { "${it.tag}.$sortField" })
+                TEXT_FIELDS.contains(sortField) -> fields.addAll(types.map { "${it.tag}.$sortField.keyword" })
+                else -> throw OpenSearchStatusException("Field $sortField not acceptable", RestStatus.NOT_ACCEPTABLE)
             }
+            fields.forEach { sourceBuilder.sort(it, order) }
+        }
+    }
+
+    fun addTypeFilters(query: BoolQueryBuilder) {
+        types.forEach {
+            query.should().add(QueryBuilders.existsQuery(it.tag))
         }
     }
 
     fun addQueryFilters(query: BoolQueryBuilder, filterParams: Map<String, String>) {
-        println("debughere3")
+        println("debug filterparams")
         println(filterParams)
+        filterParams.forEach {
+            when {
+                QUERY_FIELD == it.key -> println("query")
+                METADATA_RANGE_FIELDS.contains(it.key) -> println("metadata")
+                KEYWORD_FIELDS.contains(it.key) -> println("keyword")
+                TEXT_FIELDS.contains(it.key) -> println("text")
+                else -> println("else")
+            }
+        }
         filterParams.forEach {
             when {
                 QUERY_FIELD == it.key -> query.filter(getQueryAllBuilder(it.value)) // all text search
                 METADATA_RANGE_FIELDS.contains(it.key) -> query.filter(getRangeQueryBuilder(it.key, it.value))
-                KEYWORD_FIELDS.contains(it.key) -> query.filter(getTermsQueryBuilder(it.key, it.value))
-                TEXT_FIELDS.contains(it.key) -> query.filter(getMatchQueryBuilder(it.key, it.value))
+                KEYWORD_FIELDS.contains(it.key) -> addTermsQueryBuilder(query, it.key, it.value)
+                TEXT_FIELDS.contains(it.key) -> addMatchQueryBuilder(query, it.key, it.value)
                 else -> throw OpenSearchStatusException("Query on ${it.key} not acceptable", RestStatus.NOT_ACCEPTABLE)
             }
         }
@@ -77,7 +98,7 @@ internal class ObservabilityQueryHelper(val keyPrefix: ObservabilityObjectType) 
         val allQuery = QueryBuilders.queryStringQuery(queryValue)
         // Searching on metadata field is not supported. skip adding METADATA_FIELDS
         OBSERVABILITY_OBJECT_FIELDS.forEach {
-            allQuery.field("$keyPrefix.$it")
+            types.forEach { type -> allQuery.field("$type.$it") }
         }
         return allQuery
     }
@@ -101,15 +122,22 @@ internal class ObservabilityQueryHelper(val keyPrefix: ObservabilityObjectType) 
         }
     }
 
-    private fun getTermQueryBuilder(queryKey: String, queryValue: String): QueryBuilder {
-        return QueryBuilders.termQuery("$keyPrefix.$queryKey", queryValue)
+    private fun addTermQueryBuilder(query: BoolQueryBuilder, queryKey: String, queryValue: String) {
+        types.forEach { query.filter(QueryBuilders.termQuery("${it.tag}.$queryKey", queryValue)) }
     }
 
-    private fun getTermsQueryBuilder(queryKey: String, queryValue: String): QueryBuilder {
-        return QueryBuilders.termsQuery("$keyPrefix.$queryKey", queryValue.split(","))
+    private fun addTermsQueryBuilder(query: BoolQueryBuilder, queryKey: String, queryValue: String) {
+        types.forEach { query.filter(QueryBuilders.termsQuery("${it.tag}.$queryKey", queryValue.split(","))) }
     }
 
-    private fun getMatchQueryBuilder(queryKey: String, queryValue: String): QueryBuilder {
-        return QueryBuilders.matchQuery("$keyPrefix.$queryKey", queryValue).operator(Operator.AND)
+    private fun addMatchQueryBuilder(query: BoolQueryBuilder, queryKey: String, queryValue: String) {
+        val prefixes = if (types.size == 0) {
+            ObservabilityObjectType.getAll()
+        } else {
+            types
+        }
+        prefixes.forEach {
+            query.should().add(QueryBuilders.matchQuery("${it.tag}.$queryKey", queryValue).operator(Operator.AND))
+        }
     }
 }

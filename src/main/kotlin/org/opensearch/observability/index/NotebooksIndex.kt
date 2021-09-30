@@ -46,20 +46,20 @@ import org.opensearch.common.xcontent.NamedXContentRegistry
 import org.opensearch.common.xcontent.XContentType
 import org.opensearch.index.query.QueryBuilders
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
+import org.opensearch.observability.model.GetObservabilityObjectRequest
 import org.opensearch.observability.model.ObservabilityObjectDoc
 import org.opensearch.observability.model.ObservabilityObjectDocInfo
-import org.opensearch.observability.model.ObservabilityObjectType
+import org.opensearch.observability.model.ObservabilityObjectSearchResult
 import org.opensearch.observability.model.RestTag.ACCESS_LIST_FIELD
 import org.opensearch.observability.model.RestTag.TENANT_FIELD
-import org.opensearch.observability.model.notebook.GetAllNotebooksRequest
+import org.opensearch.observability.model.SearchResults
 import org.opensearch.observability.model.notebook.NotebookDetails
-import org.opensearch.observability.model.notebook.NotebookDetailsSearchResults
 import org.opensearch.observability.settings.PluginSettings
 import org.opensearch.observability.util.SecureIndexClient
 import org.opensearch.observability.util.logger
 import org.opensearch.rest.RestStatus
+import org.opensearch.search.SearchHit
 import org.opensearch.search.builder.SearchSourceBuilder
-import org.opensearch.search.sort.SortOrder
 import java.util.concurrent.TimeUnit
 
 /**
@@ -74,6 +74,18 @@ internal object NotebooksIndex {
 
     private lateinit var client: Client
     private lateinit var clusterService: ClusterService
+
+    private val searchHitParser = object : SearchResults.SearchHitParser<ObservabilityObjectDoc> {
+        override fun parse(searchHit: SearchHit): ObservabilityObjectDoc {
+            val parser = XContentType.JSON.xContent().createParser(
+                NamedXContentRegistry.EMPTY,
+                LoggingDeprecationHandler.INSTANCE,
+                searchHit.sourceAsString
+            )
+            parser.nextToken()
+            return ObservabilityObjectDoc.parse(parser)
+        }
+    }
 
     /**
      * Initialize the class
@@ -178,43 +190,43 @@ internal object NotebooksIndex {
      * @param maxItems the max items to query
      * @return search result of Notebook details
      */
-    fun getAllNotebooks(
-        tenant: String,
-        access: List<String>,
-        request: GetAllNotebooksRequest
-    ): NotebookDetailsSearchResults {
-        createIndex()
-        val queryHelper = ObservabilityQueryHelper(ObservabilityObjectType.NOTEBOOK)
-        val sourceBuilder = SearchSourceBuilder()
-            .timeout(TimeValue(PluginSettings.operationTimeoutMs, TimeUnit.MILLISECONDS))
-            .sort(queryHelper.getSortField(request.sortField), request.sortOrder ?: SortOrder.ASC)
-            .size(request.maxItems)
-            .from(request.fromIndex)
-        val query = QueryBuilders.boolQuery()
-        query.filter(QueryBuilders.termsQuery(TENANT_FIELD, tenant))
-//        query.filter(QueryBuilders.termsQuery(TYPE_FIELD, ObservabilityObjectType.NOTEBOOK))
-        if (access.isNotEmpty()) {
-            query.filter(QueryBuilders.termsQuery(ACCESS_LIST_FIELD, access))
-        }
-        queryHelper.addQueryFilters(query, request.filterParams)
-        println("debughere")
-        println("query:")
-        println(query)
-        sourceBuilder.query(query)
-        val searchRequest = SearchRequest()
-            .indices(INDEX_NAME)
-            .source(sourceBuilder)
-        val actionFuture = client.search(searchRequest)
-        val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
-        val result = NotebookDetailsSearchResults(request.fromIndex.toLong(), response)
-        log.info(
-            "$LOG_PREFIX:getAllNotebooks from:${request.fromIndex}, maxItems:${request.maxItems}, " +
-                "sortField:${request.sortField}, sortOrder:${request.sortOrder}, " +
-                "filterParams:${request.filterParams}, objectIdList:${request.objectIds}, " +
-                "retCount:${result.objectList.size}, totalCount:${result.totalHits}"
-        )
-        return result
-    }
+//    fun getAllNotebooks(
+//        tenant: String,
+//        access: List<String>,
+//        request: GetAllNotebooksRequest
+//    ): NotebookDetailsSearchResults {
+//        createIndex()
+//        val queryHelper = ObservabilityQueryHelper(ObservabilityObjectType.NOTEBOOK)
+//        val sourceBuilder = SearchSourceBuilder()
+//            .timeout(TimeValue(PluginSettings.operationTimeoutMs, TimeUnit.MILLISECONDS))
+//            .sort(queryHelper.getSortField(request.sortField), request.sortOrder ?: SortOrder.ASC)
+//            .size(request.maxItems)
+//            .from(request.fromIndex)
+//        val query = QueryBuilders.boolQuery()
+//        query.filter(QueryBuilders.termsQuery(TENANT_FIELD, tenant))
+// //        query.filter(QueryBuilders.termsQuery(TYPE_FIELD, ObservabilityObjectType.NOTEBOOK))
+//        if (access.isNotEmpty()) {
+//            query.filter(QueryBuilders.termsQuery(ACCESS_LIST_FIELD, access))
+//        }
+//        queryHelper.addQueryFilters(query, request.filterParams)
+//        println("debughere")
+//        println("query:")
+//        println(query)
+//        sourceBuilder.query(query)
+//        val searchRequest = SearchRequest()
+//            .indices(INDEX_NAME)
+//            .source(sourceBuilder)
+//        val actionFuture = client.search(searchRequest)
+//        val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
+//        val result = NotebookDetailsSearchResults(request.fromIndex.toLong(), response)
+//        log.info(
+//            "$LOG_PREFIX:getAllNotebooks from:${request.fromIndex}, maxItems:${request.maxItems}, " +
+//                "sortField:${request.sortField}, sortOrder:${request.sortOrder}, " +
+//                "filterParams:${request.filterParams}, objectIdList:${request.objectIds}, " +
+//                "retCount:${result.objectList.size}, totalCount:${result.totalHits}"
+//        )
+//        return result
+//    }
 
     /**
      * update Notebook details for given id
@@ -306,6 +318,46 @@ internal object NotebooksIndex {
             val doc = ObservabilityObjectDoc.parse(parser)
             ObservabilityObjectDocInfo(id, response.version, response.seqNo, response.primaryTerm, doc)
         }
+    }
+
+    fun getAllObservabilityObjects(
+        tenant: String,
+        access: List<String>,
+        request: GetObservabilityObjectRequest
+    ): ObservabilityObjectSearchResult {
+        createIndex()
+        println("types debug")
+        println(request.types)
+        val queryHelper = ObservabilityQueryHelper(request.types)
+        val sourceBuilder = SearchSourceBuilder()
+            .timeout(TimeValue(PluginSettings.operationTimeoutMs, TimeUnit.MILLISECONDS))
+            .size(request.maxItems)
+            .from(request.fromIndex)
+        queryHelper.addSortField(sourceBuilder, request.sortField, request.sortOrder)
+
+        val query = QueryBuilders.boolQuery()
+        query.filter(QueryBuilders.termsQuery(TENANT_FIELD, tenant))
+        if (access.isNotEmpty()) {
+            query.filter(QueryBuilders.termsQuery(ACCESS_LIST_FIELD, access))
+        }
+        query.minimumShouldMatch(1)
+        queryHelper.addTypeFilters(query)
+        queryHelper.addQueryFilters(query, request.filterParams)
+        println("debug query in NotebooksIndex")
+        println(query)
+        sourceBuilder.query(query)
+        val searchRequest = SearchRequest()
+            .indices(INDEX_NAME)
+            .source(sourceBuilder)
+        val actionFuture = client.search(searchRequest)
+        val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
+        val result = ObservabilityObjectSearchResult(request.fromIndex.toLong(), response, searchHitParser)
+        log.info(
+            "$LOG_PREFIX:getAllObservabilityObjects types:${request.types} from:${request.fromIndex}, maxItems:${request.maxItems}," +
+                " sortField:${request.sortField}, sortOrder=${request.sortOrder}, filters=${request.filterParams}" +
+                " retCount:${result.objectList.size}, totalCount:${result.totalHits}"
+        )
+        return result
     }
 
     fun updateObservabilityObject(id: String, observabilityObjectDoc: ObservabilityObjectDoc): Boolean {

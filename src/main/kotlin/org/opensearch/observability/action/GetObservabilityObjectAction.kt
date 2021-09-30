@@ -28,13 +28,13 @@
 package org.opensearch.observability.action
 
 import org.opensearch.commons.authuser.User
-import org.opensearch.observability.model.notebook.GetNotebookRequest
-import org.opensearch.observability.model.notebook.GetNotebookResponse
 import org.opensearch.action.ActionType
 import org.opensearch.action.support.ActionFilters
 import org.opensearch.client.Client
 import org.opensearch.common.inject.Inject
 import org.opensearch.common.xcontent.NamedXContentRegistry
+import org.opensearch.observability.model.GetObservabilityObjectRequest
+import org.opensearch.observability.model.GetObservabilityObjectResponse
 import org.opensearch.transport.TransportService
 
 /**
@@ -45,20 +45,22 @@ internal class GetObservabilityObjectAction @Inject constructor(
     client: Client,
     actionFilters: ActionFilters,
     val xContentRegistry: NamedXContentRegistry
-) : PluginBaseAction<GetNotebookRequest, GetNotebookResponse>(NAME,
+) : PluginBaseAction<GetObservabilityObjectRequest, GetObservabilityObjectResponse>(
+    NAME,
     transportService,
     client,
     actionFilters,
-    ::GetNotebookRequest) {
+    ::GetObservabilityObjectRequest
+) {
     companion object {
         private const val NAME = "cluster:admin/opendistro/notebooks/get"
-        internal val ACTION_TYPE = ActionType(NAME, ::GetNotebookResponse)
+        internal val ACTION_TYPE = ActionType(NAME, ::GetObservabilityObjectResponse)
     }
 
     /**
      * {@inheritDoc}
      */
-    override fun executeRequest(request: GetNotebookRequest, user: User?): GetNotebookResponse {
-        return NotebookActions.info(request, user)
+    override fun executeRequest(request: GetObservabilityObjectRequest, user: User?): GetObservabilityObjectResponse {
+        return NotebookActions.get(request, user)
     }
 }

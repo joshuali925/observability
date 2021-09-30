@@ -15,6 +15,7 @@ import org.opensearch.commons.utils.EnumParser
 import org.opensearch.observability.model.RestTag.NOTEBOOK_FIELD
 import org.opensearch.observability.model.RestTag.SAVED_QUERY_FIELD
 import org.opensearch.observability.model.RestTag.SAVED_VISUALIZATION_FIELD
+import java.util.EnumSet
 
 /**
  * Enum for Notification config type
@@ -58,6 +59,12 @@ enum class ObservabilityObjectType(val tag: String) {
          */
         fun fromTagOrDefault(tag: String): ObservabilityObjectType {
             return tagMap[tag] ?: NONE
+        }
+
+        fun getAll(): EnumSet<ObservabilityObjectType> {
+            val allTypes = EnumSet.allOf(ObservabilityObjectType::class.java)
+            allTypes.remove(NONE)
+            return allTypes
         }
     }
 }

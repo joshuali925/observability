@@ -90,6 +90,6 @@ internal class GetAllNotebooksResponse : BaseResponse {
         } else {
             RestTag.REST_OUTPUT_PARAMS
         }
-        return notebookList.toXContent(builder, xContentParams)
+        return null!!
     }
 }

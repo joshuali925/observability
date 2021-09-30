@@ -37,7 +37,6 @@ internal object RestTag {
 
     const val ID_FIELD = "id"
     const val ID_LIST_FIELD = "idList"
-    const val OBJECT_FIELD = "object"
     const val UPDATED_TIME_FIELD = "lastUpdatedTimeMs"
     const val CREATED_TIME_FIELD = "createdTimeMs"
     const val TENANT_FIELD = "tenant"
@@ -50,6 +49,7 @@ internal object RestTag {
     const val SORT_ORDER_FIELD = "sortOrder"
     const val FILTER_PARAM_LIST_FIELD = "filterParamList"
     const val TYPE_FIELD = "type" // ObservabilityObjectType (notebook, saved_query, ...)
+    const val OBJECT_LIST_FIELD = "observabilityObjectList"
 
     const val NOTEBOOK_LIST_FIELD = "notebookDetailsList"
     const val NOTEBOOK_FIELD = "notebook"

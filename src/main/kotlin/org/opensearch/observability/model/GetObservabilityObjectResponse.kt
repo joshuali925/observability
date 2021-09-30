@@ -17,14 +17,13 @@ import org.opensearch.common.io.stream.Writeable
 import org.opensearch.common.xcontent.ToXContent
 import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentParser
-import org.opensearch.commons.notifications.model.NotificationConfigSearchResult
 import java.io.IOException
 
 /**
  * Action Response for getting notification configuration.
  */
 internal class GetObservabilityObjectResponse : BaseResponse {
-    val searchResult: NotificationConfigSearchResult
+    val searchResult: ObservabilityObjectSearchResult
 
     companion object {
 
@@ -40,7 +39,7 @@ internal class GetObservabilityObjectResponse : BaseResponse {
         @JvmStatic
         @Throws(IOException::class)
         fun parse(parser: XContentParser): GetObservabilityObjectResponse {
-            return GetObservabilityObjectResponse(NotificationConfigSearchResult(parser))
+            return GetObservabilityObjectResponse(ObservabilityObjectSearchResult(parser))
         }
     }
 
@@ -48,7 +47,7 @@ internal class GetObservabilityObjectResponse : BaseResponse {
      * constructor for creating the class
      * @param searchResult the notification configuration list
      */
-    constructor(searchResult: NotificationConfigSearchResult) {
+    constructor(searchResult: ObservabilityObjectSearchResult) {
         this.searchResult = searchResult
     }
 
@@ -57,7 +56,7 @@ internal class GetObservabilityObjectResponse : BaseResponse {
      */
     @Throws(IOException::class)
     constructor(input: StreamInput) : super(input) {
-        searchResult = NotificationConfigSearchResult(input)
+        searchResult = ObservabilityObjectSearchResult(input)
     }
 
     /**

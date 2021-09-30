@@ -35,15 +35,15 @@ import org.opensearch.observability.model.SearchResults
 /**
  * Notebooks search results
  */
-internal class NotebookDetailsSearchResults : SearchResults<NotebookDetails> {
-    constructor(parser: XContentParser) : super(parser, NOTEBOOK_LIST_FIELD)
+internal class NotebookDetailsSearchResults {
+    constructor(parser: XContentParser) {
 
-    constructor(from: Long, response: SearchResponse) : super(from, response, NOTEBOOK_LIST_FIELD)
+    }
 
     /**
      * {@inheritDoc}
      */
-    override fun parseItem(parser: XContentParser, useId: String?): NotebookDetails {
+    fun parseItem(parser: XContentParser, useId: String?): NotebookDetails {
         return NotebookDetails.parse(parser, useId)
     }
 }

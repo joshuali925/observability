@@ -27,33 +27,32 @@
 
 package org.opensearch.observability.model
 
-import org.apache.lucene.search.TotalHits
 import org.apache.lucene.search.TotalHits.Relation
 import org.apache.lucene.search.TotalHits.Relation.EQUAL_TO
 import org.apache.lucene.search.TotalHits.Relation.GREATER_THAN_OR_EQUAL_TO
 import org.opensearch.action.search.SearchResponse
-import org.opensearch.common.xcontent.LoggingDeprecationHandler
-import org.opensearch.common.xcontent.NamedXContentRegistry
+import org.opensearch.common.io.stream.StreamInput
+import org.opensearch.common.io.stream.StreamOutput
+import org.opensearch.common.io.stream.Writeable
 import org.opensearch.common.xcontent.ToXContent.Params
-import org.opensearch.common.xcontent.ToXContentObject
 import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParserUtils
-import org.opensearch.common.xcontent.XContentType
-import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
-import org.opensearch.observability.model.RestTag.REST_OUTPUT_PARAMS
-import org.opensearch.observability.util.logger
+import org.opensearch.search.SearchHit
 
-// internal abstract class SearchResults<ItemClass : BaseModel> : BaseModel {
-internal abstract class SearchResults<ItemClass : ToXContentObject> : ToXContentObject {
+internal abstract class SearchResults<ItemClass : BaseModel> : BaseModel {
     val startIndex: Long
     val totalHits: Long
     val totalHitRelation: Relation
-    val objectList: List<ItemClass>
     val objectListFieldName: String
+    val objectList: List<ItemClass>
+
+    interface SearchHitParser<ItemClass> {
+        fun parse(searchHit: SearchHit): ItemClass
+    }
 
     companion object {
-        private val log by logger(SearchResults::class.java)
+        private val log by org.opensearch.commons.utils.logger(SearchResults::class.java)
         private const val START_INDEX_TAG = "startIndex"
         private const val TOTAL_HITS_TAG = "totalHits"
         private const val TOTAL_HIT_RELATION_TAG = "totalHitRelation"
@@ -75,34 +74,46 @@ internal abstract class SearchResults<ItemClass : ToXContentObject> : ToXContent
     }
 
     constructor(
+        objectListFieldName: String,
+        objectItem: ItemClass
+    ) {
+        this.startIndex = 0
+        this.totalHits = 1
+        this.totalHitRelation = EQUAL_TO
+        this.objectListFieldName = objectListFieldName
+        this.objectList = listOf(objectItem)
+    }
+
+    constructor(
         startIndex: Long,
         totalHits: Long,
         totalHitRelation: Relation,
-        objectList: List<ItemClass>,
-        objectListFieldName: String
+        objectListFieldName: String,
+        objectList: List<ItemClass>
     ) {
         this.startIndex = startIndex
         this.totalHits = totalHits
         this.totalHitRelation = totalHitRelation
-        this.objectList = objectList
         this.objectListFieldName = objectListFieldName
+        this.objectList = objectList
     }
 
-    constructor(from: Long, response: SearchResponse, objectListFieldName: String) {
+    constructor(
+        from: Long,
+        response: SearchResponse,
+        searchHitParser: SearchHitParser<ItemClass>,
+        objectListFieldName: String
+    ) {
         val mutableList: MutableList<ItemClass> = mutableListOf()
         response.hits.forEach {
-            val parser = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY,
-                LoggingDeprecationHandler.INSTANCE,
-                it.sourceAsString)
-            parser.nextToken()
-            mutableList.add(parseItem(parser, it.id))
+            mutableList.add(searchHitParser.parse(it))
         }
         val totalHits = response.hits.totalHits
         val totalHitsVal: Long
-        val totalHitsRelation: TotalHits.Relation
+        val totalHitsRelation: Relation
         if (totalHits == null) {
             totalHitsVal = mutableList.size.toLong()
-            totalHitsRelation = TotalHits.Relation.EQUAL_TO
+            totalHitsRelation = EQUAL_TO
         } else {
             totalHitsVal = totalHits.value
             totalHitsRelation = totalHits.relation
@@ -110,8 +121,8 @@ internal abstract class SearchResults<ItemClass : ToXContentObject> : ToXContent
         this.startIndex = from
         this.totalHits = totalHitsVal
         this.totalHitRelation = totalHitsRelation
-        this.objectList = mutableList
         this.objectListFieldName = objectListFieldName
+        this.objectList = mutableList
     }
 
     /**
@@ -134,7 +145,7 @@ internal abstract class SearchResults<ItemClass : ToXContentObject> : ToXContent
                 objectListFieldName -> objectList = parseItemList(parser)
                 else -> {
                     parser.skipChildren()
-                    log.info("$LOG_PREFIX:Skipping Unknown field $fieldName")
+                    log.info("Skipping Unknown field $fieldName")
                 }
             }
         }
@@ -145,8 +156,8 @@ internal abstract class SearchResults<ItemClass : ToXContentObject> : ToXContent
         this.startIndex = startIndex
         this.totalHits = totalHits
         this.totalHitRelation = totalHitRelation
-        this.objectList = objectList
         this.objectListFieldName = objectListFieldName
+        this.objectList = objectList
     }
 
     /**
@@ -168,19 +179,42 @@ internal abstract class SearchResults<ItemClass : ToXContentObject> : ToXContent
      * @param parser data referenced at parser
      * @return created item
      */
-    abstract fun parseItem(parser: XContentParser, useId: String? = null): ItemClass
+    abstract fun parseItem(parser: XContentParser): ItemClass
+
+    /**
+     * Constructor used in transport action communication.
+     * @param input StreamInput stream to deserialize data from.
+     * @param reader StreamInput reader class for reading item.
+     */
+    constructor(input: StreamInput, reader: Writeable.Reader<ItemClass>) : this(
+        startIndex = input.readLong(),
+        totalHits = input.readLong(),
+        totalHitRelation = input.readEnum(Relation::class.java),
+        objectListFieldName = input.readString(),
+        objectList = input.readList(reader)
+    )
+
+    /**
+     * {@inheritDoc}
+     */
+    override fun writeTo(output: StreamOutput) {
+        output.writeLong(startIndex)
+        output.writeLong(totalHits)
+        output.writeEnum(totalHitRelation)
+        output.writeString(objectListFieldName)
+        output.writeList(objectList)
+    }
 
     /**
      * {@inheritDoc}
      */
     override fun toXContent(builder: XContentBuilder?, params: Params?): XContentBuilder {
-        val xContentParams = params ?: REST_OUTPUT_PARAMS
         builder!!.startObject()
             .field(START_INDEX_TAG, startIndex)
             .field(TOTAL_HITS_TAG, totalHits)
             .field(TOTAL_HIT_RELATION_TAG, convertRelation(totalHitRelation))
             .startArray(objectListFieldName)
-        objectList.forEach { it.toXContent(builder, xContentParams) }
+        objectList.forEach { it.toXContent(builder, params) }
         return builder.endArray().endObject()
     }
 }

@@ -29,21 +29,18 @@ package org.opensearch.observability.action
 
 import org.opensearch.OpenSearchStatusException
 import org.opensearch.commons.authuser.User
-import org.opensearch.commons.notifications.action.DeleteNotificationConfigRequest
-import org.opensearch.commons.notifications.action.DeleteNotificationConfigResponse
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.index.NotebooksIndex
 import org.opensearch.observability.model.CreateObservabilityObjectRequest
 import org.opensearch.observability.model.CreateObservabilityObjectResponse
 import org.opensearch.observability.model.DeleteObservabilityObjectRequest
 import org.opensearch.observability.model.DeleteObservabilityObjectResponse
+import org.opensearch.observability.model.GetObservabilityObjectRequest
+import org.opensearch.observability.model.GetObservabilityObjectResponse
 import org.opensearch.observability.model.ObservabilityObjectDoc
+import org.opensearch.observability.model.ObservabilityObjectSearchResult
 import org.opensearch.observability.model.UpdateObservabilityObjectRequest
 import org.opensearch.observability.model.UpdateObservabilityObjectResponse
-import org.opensearch.observability.model.notebook.GetAllNotebooksRequest
-import org.opensearch.observability.model.notebook.GetAllNotebooksResponse
-import org.opensearch.observability.model.notebook.GetNotebookRequest
-import org.opensearch.observability.model.notebook.GetNotebookResponse
 import org.opensearch.observability.security.UserAccessManager
 import org.opensearch.observability.util.logger
 import org.opensearch.rest.RestStatus
@@ -90,7 +87,10 @@ internal object NotebookActions {
         UserAccessManager.validateUser(user)
         val observabilityObject = NotebooksIndex.getObservabilityObject(request.objectId)
         observabilityObject
-            ?: throw OpenSearchStatusException("ObservabilityObject ${request.objectId} not found", RestStatus.NOT_FOUND)
+            ?: throw OpenSearchStatusException(
+                "ObservabilityObject ${request.objectId} not found",
+                RestStatus.NOT_FOUND
+            )
         val currentDoc = observabilityObject.observabilityObjectDoc
         if (!UserAccessManager.doesUserHasAccess(user, currentDoc.tenant, currentDoc.access)) {
             throw OpenSearchStatusException(
@@ -114,33 +114,111 @@ internal object NotebookActions {
     }
 
     /**
-     * Get Notebook info
-     * @param request [GetNotebookRequest] object
-     * @return [GetNotebookResponse]
+     * Get ObservabilityObject info
+     * @param request [GetObservabilityObjectRequest] object
+     * @return [GetObservabilityObjectResponse]
      */
-    fun info(request: GetNotebookRequest, user: User?): GetNotebookResponse {
-        log.info("$LOG_PREFIX:Notebook-info ${request.notebookId}")
+    fun get(request: GetObservabilityObjectRequest, user: User?): GetObservabilityObjectResponse {
+        log.info("$LOG_PREFIX:ObservabilityObject-get ${request.objectIds}")
         UserAccessManager.validateUser(user)
-        val notebookDetails = NotebooksIndex.getNotebook(request.notebookId)
-        notebookDetails
-            ?: throw OpenSearchStatusException("Notebook ${request.notebookId} not found", RestStatus.NOT_FOUND)
-        if (!UserAccessManager.doesUserHasAccess(user, notebookDetails.tenant, notebookDetails.access)) {
-            throw OpenSearchStatusException(
-                "Permission denied for Notebook ${request.notebookId}",
-                RestStatus.FORBIDDEN
-            )
+        return when (request.objectIds.size) {
+            0 -> getAll(request, user)
+            1 -> info(request.objectIds.first(), user)
+            else -> info(request.objectIds, user)
         }
-        return GetNotebookResponse(notebookDetails, UserAccessManager.hasAllInfoAccess(user))
     }
 
     /**
-     * Delete NotificationConfig
-     * @param request [DeleteNotificationConfigRequest] object
+     * Get ObservabilityObject info
+     * @param objectId object id
      * @param user the user info object
-     * @return [DeleteNotificationConfigResponse]
+     * @return [GetObservabilityObjectResponse]
+     */
+    private fun info(objectId: String, user: User?): GetObservabilityObjectResponse {
+        log.info("$LOG_PREFIX:ObservabilityObject-info $objectId")
+        val observabilityObjectDocInfo = NotebooksIndex.getObservabilityObject(objectId)
+        observabilityObjectDocInfo
+            ?: run {
+                throw OpenSearchStatusException("ObservabilityObject $objectId not found", RestStatus.NOT_FOUND)
+            }
+        val currentDoc = observabilityObjectDocInfo.observabilityObjectDoc
+        if (!UserAccessManager.doesUserHasAccess(user, currentDoc.tenant, currentDoc.access)) {
+            throw OpenSearchStatusException("Permission denied for ObservabilityObject $objectId", RestStatus.FORBIDDEN)
+        }
+        val docInfo = ObservabilityObjectDoc(
+            currentDoc.updatedTime,
+            currentDoc.createdTime,
+            currentDoc.tenant,
+            currentDoc.access,
+            currentDoc.type,
+            currentDoc.objectData
+        )
+        return GetObservabilityObjectResponse(ObservabilityObjectSearchResult(docInfo))
+    }
+
+    /**
+     * Get ObservabilityObject info
+     * @param objectIds object id set
+     * @param user the user info object
+     * @return [GetObservabilityObjectResponse]
+     */
+    private fun info(objectIds: Set<String>, user: User?): GetObservabilityObjectResponse {
+        log.info("$LOG_PREFIX:ObservabilityObject-info $objectIds")
+        val objectDocs = NotebooksIndex.getObservabilityObjects(objectIds)
+        if (objectDocs.size != objectIds.size) {
+            val mutableSet = objectIds.toMutableSet()
+            objectDocs.forEach { mutableSet.remove(it.id) }
+            throw OpenSearchStatusException(
+                "ObservabilityObject $mutableSet not found",
+                RestStatus.NOT_FOUND
+            )
+        }
+        objectDocs.forEach {
+            val currentDoc = it.observabilityObjectDoc
+            if (!UserAccessManager.doesUserHasAccess(user, currentDoc.tenant, currentDoc.access)) {
+                throw OpenSearchStatusException(
+                    "Permission denied for ObservabilityObject ${it.id}",
+                    RestStatus.FORBIDDEN
+                )
+            }
+        }
+        val configSearchResult = objectDocs.map {
+            ObservabilityObjectDoc(
+                it.observabilityObjectDoc.updatedTime,
+                it.observabilityObjectDoc.createdTime,
+                it.observabilityObjectDoc.tenant,
+                it.observabilityObjectDoc.access,
+                it.observabilityObjectDoc.type,
+                it.observabilityObjectDoc.objectData
+            )
+        }
+        return GetObservabilityObjectResponse(ObservabilityObjectSearchResult(configSearchResult))
+    }
+
+    /**
+     * Get all ObservabilityObject matching the criteria
+     * @param request [GetObservabilityObjectRequest] object
+     * @param user the user info object
+     * @return [GetObservabilityObjectResponse]
+     */
+    private fun getAll(request: GetObservabilityObjectRequest, user: User?): GetObservabilityObjectResponse {
+        log.info("$LOG_PREFIX:ObservabilityObject-getAll")
+        val searchResult = NotebooksIndex.getAllObservabilityObjects(
+            UserAccessManager.getUserTenant(user),
+            UserAccessManager.getSearchAccessInfo(user),
+            request
+        )
+        return GetObservabilityObjectResponse(searchResult)
+    }
+
+    /**
+     * Delete ObservabilityObject
+     * @param request [DeleteObservabilityObjectRequest] object
+     * @param user the user info object
+     * @return [DeleteObservabilityObjectResponse]
      */
     fun delete(request: DeleteObservabilityObjectRequest, user: User?): DeleteObservabilityObjectResponse {
-        log.info("$LOG_PREFIX:NotificationConfig-delete ${request.objectIds}")
+        log.info("$LOG_PREFIX:ObservabilityObject-delete ${request.objectIds}")
         return if (request.objectIds.size == 1) {
             delete(request.objectIds.first(), user)
         } else {
@@ -153,7 +231,7 @@ internal object NotebookActions {
      * @param request [DeleteObservabilityObjectRequest] object
      * @return [DeleteObservabilityObjectResponse]
      */
-    fun delete(objectId: String, user: User?): DeleteObservabilityObjectResponse {
+    private fun delete(objectId: String, user: User?): DeleteObservabilityObjectResponse {
         log.info("$LOG_PREFIX:ObservabilityObject-delete $objectId")
         UserAccessManager.validateUser(user)
         val observabilityObjectDocInfo = NotebooksIndex.getObservabilityObject(objectId)
@@ -182,20 +260,20 @@ internal object NotebookActions {
     }
 
     /**
-     * Delete NotificationConfig
-     * @param objectIds NotificationConfig object ids
+     * Delete ObservabilityObject
+     * @param objectIds ObservabilityObject object ids
      * @param user the user info object
      * @return [DeleteObservabilityObjectResponse]
      */
     private fun delete(objectIds: Set<String>, user: User?): DeleteObservabilityObjectResponse {
-        log.info("$LOG_PREFIX:NotificationConfig-delete $objectIds")
+        log.info("$LOG_PREFIX:ObservabilityObject-delete $objectIds")
         UserAccessManager.validateUser(user)
         val configDocs = NotebooksIndex.getObservabilityObjects(objectIds)
         if (configDocs.size != objectIds.size) {
             val mutableSet = objectIds.toMutableSet()
             configDocs.forEach { mutableSet.remove(it.id) }
             throw OpenSearchStatusException(
-                "NotificationConfig $mutableSet not found",
+                "ObservabilityObject $mutableSet not found",
                 RestStatus.NOT_FOUND
             )
         }
@@ -203,28 +281,12 @@ internal object NotebookActions {
             val currentDoc = it.observabilityObjectDoc
             if (!UserAccessManager.doesUserHasAccess(user, currentDoc.tenant, currentDoc.access)) {
                 throw OpenSearchStatusException(
-                    "Permission denied for NotificationConfig ${it.id}",
+                    "Permission denied for ObservabilityObject ${it.id}",
                     RestStatus.FORBIDDEN
                 )
             }
         }
         val deleteStatus = NotebooksIndex.deleteObservabilityObjects(objectIds)
         return DeleteObservabilityObjectResponse(deleteStatus)
-    }
-
-    /**
-     * Get all Notebooks
-     * @param request [GetAllNotebooksRequest] object
-     * @return [GetAllNotebooksResponse]
-     */
-    fun getAll(request: GetAllNotebooksRequest, user: User?): GetAllNotebooksResponse {
-        log.info("$LOG_PREFIX:Notebook-getAll fromIndex:${request.fromIndex} maxItems:${request.maxItems}")
-        UserAccessManager.validateUser(user)
-        val notebooksList = NotebooksIndex.getAllNotebooks(
-            UserAccessManager.getUserTenant(user),
-            UserAccessManager.getSearchAccessInfo(user),
-            request
-        )
-        return GetAllNotebooksResponse(notebooksList, UserAccessManager.hasAllInfoAccess(user))
     }
 }

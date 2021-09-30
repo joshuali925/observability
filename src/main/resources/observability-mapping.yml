@@ -46,8 +46,14 @@ properties:
     type: keyword
   notebook:
     type: object
-    enabled: false # consistent mapping in notebooks index
-  saved_query:
+#    enabled: false # consistent mapping in notebooks index
+    properties:
+      name:
+        type: text
+        fields:
+          keyword:
+            type: keyword
+  savedQuery:
     type: object
     properties:
       name:
@@ -55,7 +61,15 @@ properties:
         fields:
           keyword:
             type: keyword
-  operational_panel:
+  savedVisualization:
+    type: object
+    properties:
+      name:
+        type: text
+        fields:
+          keyword:
+            type: keyword
+  operationalPanel:
     type: object
     properties:
       name:

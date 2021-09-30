@@ -162,7 +162,7 @@ internal object PluginSettings {
     /**
      * Default number of items to query.
      */
-    private const val DEFAULT_ITEMS_QUERY_COUNT_VALUE = 100
+    private const val DEFAULT_ITEMS_QUERY_COUNT_VALUE = 1000
 
     /**
      * Minimum number of items to query.
