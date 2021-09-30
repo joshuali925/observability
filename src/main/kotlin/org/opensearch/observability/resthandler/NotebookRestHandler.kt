@@ -30,9 +30,8 @@ import org.opensearch.observability.ObservabilityPlugin.Companion.BASE_NOTEBOOKS
 import org.opensearch.observability.action.DeleteObservabilityObjectAction
 import org.opensearch.observability.action.GetObservabilityObjectAction
 import org.opensearch.observability.action.NotebookActions
-import org.opensearch.observability.action.UpdateNotebookAction
+import org.opensearch.observability.action.UpdateObservabilityObjectAction
 import org.opensearch.observability.model.notebook.GetNotebookRequest
-import org.opensearch.observability.model.notebook.UpdateNotebookRequest
 import org.opensearch.observability.util.contentParserNextToken
 import org.opensearch.client.node.NodeClient
 import org.opensearch.observability.action.CreateObservabilityObjectAction
@@ -40,6 +39,7 @@ import org.opensearch.observability.model.CreateObservabilityObjectRequest
 import org.opensearch.observability.model.DeleteObservabilityObjectRequest
 import org.opensearch.observability.model.RestTag.ID_FIELD
 import org.opensearch.observability.model.RestTag.ID_LIST_FIELD
+import org.opensearch.observability.model.UpdateObservabilityObjectRequest
 import org.opensearch.rest.BaseRestHandler
 import org.opensearch.rest.BaseRestHandler.RestChannelConsumer
 import org.opensearch.rest.BytesRestResponse
@@ -126,8 +126,8 @@ internal class NotebookRestHandler : BaseRestHandler() {
             }
             PUT -> RestChannelConsumer {
                 client.execute(
-                    UpdateNotebookAction.ACTION_TYPE,
-                    UpdateNotebookRequest(request.contentParserNextToken(), request.param(ID_FIELD)),
+                    UpdateObservabilityObjectAction.ACTION_TYPE,
+                    UpdateObservabilityObjectRequest.parse(request.contentParserNextToken(), request.param(ID_FIELD)),
                     RestResponseToXContentListener(it)
                 )
             }

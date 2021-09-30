@@ -38,13 +38,12 @@ import org.opensearch.observability.model.CreateObservabilityObjectResponse
 import org.opensearch.observability.model.DeleteObservabilityObjectRequest
 import org.opensearch.observability.model.DeleteObservabilityObjectResponse
 import org.opensearch.observability.model.ObservabilityObjectDoc
+import org.opensearch.observability.model.UpdateObservabilityObjectRequest
+import org.opensearch.observability.model.UpdateObservabilityObjectResponse
 import org.opensearch.observability.model.notebook.GetAllNotebooksRequest
 import org.opensearch.observability.model.notebook.GetAllNotebooksResponse
 import org.opensearch.observability.model.notebook.GetNotebookRequest
 import org.opensearch.observability.model.notebook.GetNotebookResponse
-import org.opensearch.observability.model.notebook.NotebookDetails
-import org.opensearch.observability.model.notebook.UpdateNotebookRequest
-import org.opensearch.observability.model.notebook.UpdateNotebookResponse
 import org.opensearch.observability.security.UserAccessManager
 import org.opensearch.observability.util.logger
 import org.opensearch.rest.RestStatus
@@ -73,7 +72,7 @@ internal object NotebookActions {
             request.type,
             request.objectData
         )
-        val docId = NotebooksIndex.create(objectDoc)
+        val docId = NotebooksIndex.createObservabilityObject(objectDoc)
         docId ?: throw OpenSearchStatusException(
             "Notebook Creation failed",
             RestStatus.INTERNAL_SERVER_ERROR
@@ -83,34 +82,35 @@ internal object NotebookActions {
 
     /**
      * Update Notebook
-     * @param request [UpdateNotebookRequest] object
-     * @return [UpdateNotebookResponse]
+     * @param request [UpdateObservabilityObjectRequest] object
+     * @return [UpdateObservabilityObjectResponse]
      */
-    fun update(request: UpdateNotebookRequest, user: User?): UpdateNotebookResponse {
-        log.info("$LOG_PREFIX:Notebook-update ${request.notebookId}")
+    fun update(request: UpdateObservabilityObjectRequest, user: User?): UpdateObservabilityObjectResponse {
+        log.info("$LOG_PREFIX:ObservabilityObject-update ${request.objectId}")
         UserAccessManager.validateUser(user)
-        val currentNotebookDetails = NotebooksIndex.getNotebook(request.notebookId)
-        currentNotebookDetails
-            ?: throw OpenSearchStatusException("Notebook ${request.notebookId} not found", RestStatus.NOT_FOUND)
-        if (!UserAccessManager.doesUserHasAccess(user, currentNotebookDetails.tenant, currentNotebookDetails.access)) {
+        val observabilityObject = NotebooksIndex.getObservabilityObject(request.objectId)
+        observabilityObject
+            ?: throw OpenSearchStatusException("ObservabilityObject ${request.objectId} not found", RestStatus.NOT_FOUND)
+        val currentDoc = observabilityObject.observabilityObjectDoc
+        if (!UserAccessManager.doesUserHasAccess(user, currentDoc.tenant, currentDoc.access)) {
             throw OpenSearchStatusException(
-                "Permission denied for Notebook ${request.notebookId}",
+                "Permission denied for ObservabilityObject ${request.objectId}",
                 RestStatus.FORBIDDEN
             )
         }
         val currentTime = Instant.now()
-        val notebookDetails = NotebookDetails(
-            request.notebookId,
+        val objectDoc = ObservabilityObjectDoc(
             currentTime,
-            currentNotebookDetails.createdTime,
+            currentDoc.createdTime,
             UserAccessManager.getUserTenant(user),
-            currentNotebookDetails.access,
-            request.notebook
+            UserAccessManager.getAllAccessInfo(user),
+            request.type,
+            request.objectData
         )
-        if (!NotebooksIndex.updateNotebook(request.notebookId, notebookDetails)) {
-            throw OpenSearchStatusException("Notebook Update failed", RestStatus.INTERNAL_SERVER_ERROR)
+        if (!NotebooksIndex.updateObservabilityObject(request.objectId, objectDoc)) {
+            throw OpenSearchStatusException("ObservabilityObject Update failed", RestStatus.INTERNAL_SERVER_ERROR)
         }
-        return UpdateNotebookResponse(request.notebookId)
+        return UpdateObservabilityObjectResponse(request.objectId)
     }
 
     /**

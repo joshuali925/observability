@@ -28,37 +28,37 @@
 package org.opensearch.observability.action
 
 import org.opensearch.commons.authuser.User
-import org.opensearch.observability.model.notebook.UpdateNotebookRequest
-import org.opensearch.observability.model.notebook.UpdateNotebookResponse
 import org.opensearch.action.ActionType
 import org.opensearch.action.support.ActionFilters
 import org.opensearch.client.Client
 import org.opensearch.common.inject.Inject
 import org.opensearch.common.xcontent.NamedXContentRegistry
+import org.opensearch.observability.model.UpdateObservabilityObjectRequest
+import org.opensearch.observability.model.UpdateObservabilityObjectResponse
 import org.opensearch.transport.TransportService
 
 /**
  * Update notebook transport action
  */
-internal class UpdateNotebookAction @Inject constructor(
+internal class UpdateObservabilityObjectAction @Inject constructor(
     transportService: TransportService,
     client: Client,
     actionFilters: ActionFilters,
     val xContentRegistry: NamedXContentRegistry
-) : PluginBaseAction<UpdateNotebookRequest, UpdateNotebookResponse>(NAME,
+) : PluginBaseAction<UpdateObservabilityObjectRequest, UpdateObservabilityObjectResponse>(NAME,
     transportService,
     client,
     actionFilters,
-    ::UpdateNotebookRequest) {
+    ::UpdateObservabilityObjectRequest) {
     companion object {
         private const val NAME = "cluster:admin/opendistro/notebooks/update"
-        internal val ACTION_TYPE = ActionType(NAME, ::UpdateNotebookResponse)
+        internal val ACTION_TYPE = ActionType(NAME, ::UpdateObservabilityObjectResponse)
     }
 
     /**
      * {@inheritDoc}
      */
-    override fun executeRequest(request: UpdateNotebookRequest, user: User?): UpdateNotebookResponse {
+    override fun executeRequest(request: UpdateObservabilityObjectRequest, user: User?): UpdateObservabilityObjectResponse {
         return NotebookActions.update(request, user)
     }
 }

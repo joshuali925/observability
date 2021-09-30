@@ -257,7 +257,7 @@ internal object NotebooksIndex {
 
     // ===================================== new methods
 
-    fun create(observabilityObjectDoc: ObservabilityObjectDoc): String? {
+    fun createObservabilityObject(observabilityObjectDoc: ObservabilityObjectDoc): String? {
         createIndex()
         val xContent = observabilityObjectDoc.toXContent()
         println("debug index create")
@@ -306,6 +306,21 @@ internal object NotebooksIndex {
             val doc = ObservabilityObjectDoc.parse(parser)
             ObservabilityObjectDocInfo(id, response.version, response.seqNo, response.primaryTerm, doc)
         }
+    }
+
+    fun updateObservabilityObject(id: String, observabilityObjectDoc: ObservabilityObjectDoc): Boolean {
+        createIndex()
+        val updateRequest = UpdateRequest()
+            .index(INDEX_NAME)
+            .id(id)
+            .doc(observabilityObjectDoc.toXContent())
+            .fetchSource(true)
+        val actionFuture = client.update(updateRequest)
+        val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
+        if (response.result != DocWriteResponse.Result.UPDATED) {
+            log.warn("$LOG_PREFIX:updateObservabilityObject failed for $id; response:$response")
+        }
+        return response.result == DocWriteResponse.Result.UPDATED
     }
 
     fun deleteObservabilityObject(id: String): Boolean {
