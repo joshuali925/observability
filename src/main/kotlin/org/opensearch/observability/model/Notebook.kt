@@ -25,7 +25,7 @@
  *
  */
 
-package org.opensearch.observability.model.notebook
+package org.opensearch.observability.model
 
 import org.opensearch.common.io.stream.StreamInput
 import org.opensearch.common.io.stream.StreamOutput
@@ -38,9 +38,6 @@ import org.opensearch.common.xcontent.XContentFactory
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParserUtils
 import org.opensearch.commons.notifications.model.XParser
-import org.opensearch.observability.model.BaseModel
-import org.opensearch.observability.model.BaseObjectData
-import org.opensearch.observability.model.RestTag
 import org.opensearch.observability.util.fieldIfNotNull
 
 /**

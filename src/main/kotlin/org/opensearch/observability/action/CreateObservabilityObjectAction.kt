@@ -48,6 +48,6 @@ internal class CreateObservabilityObjectAction @Inject constructor(
         request: CreateObservabilityObjectRequest,
         user: User?
     ): CreateObservabilityObjectResponse {
-        return NotebookActions.create(request, user)
+        return ObservabilityActions.create(request, user)
     }
 }

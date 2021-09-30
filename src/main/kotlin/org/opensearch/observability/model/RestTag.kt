@@ -34,7 +34,8 @@ import org.opensearch.common.xcontent.ToXContent.Params
  */
 internal object RestTag {
     const val QUERY_FIELD = "query"
-
+    const val OBJECT_LIST_FIELD = "observabilityObjectList"
+    const val DELETE_RESPONSE_LIST_TAG = "deleteResponseList"
     const val ID_FIELD = "id"
     const val ID_LIST_FIELD = "idList"
     const val UPDATED_TIME_FIELD = "lastUpdatedTimeMs"
@@ -48,26 +49,10 @@ internal object RestTag {
     const val SORT_FIELD_FIELD = "sortField"
     const val SORT_ORDER_FIELD = "sortOrder"
     const val FILTER_PARAM_LIST_FIELD = "filterParamList"
-    const val TYPE_FIELD = "type" // ObservabilityObjectType (notebook, saved_query, ...)
-    const val OBJECT_LIST_FIELD = "observabilityObjectList"
-
-    const val NOTEBOOK_LIST_FIELD = "notebookDetailsList"
+    const val TYPE_FIELD = "type" // ObservabilityObjectType (notebook, savedQuery, ...)
     const val NOTEBOOK_FIELD = "notebook"
-    const val NOTEBOOK_ID_FIELD = "notebookId"
-    const val NOTEBOOK_DETAILS_FIELD = "notebookDetails"
-
-    const val SAVED_QUERY_LIST_FIELD = "savedQueryDetailsList"
     const val SAVED_QUERY_FIELD = "savedQuery"
-    const val SAVED_QUERY_ID_FIELD = "savedQueryId"
-    const val SAVED_QUERY_DETAILS_FIELD = "savedQueryDetails"
-
-    const val SAVED_VISUALIZATION_LIST_FIELD = "savedVisualizationDetailsList"
     const val SAVED_VISUALIZATION_FIELD = "savedVisualization"
-    const val SAVED_VISUALIZATION_ID_FIELD = "savedVisualizationId"
-    const val SAVED_VISUALIZATION_DETAILS_FIELD = "savedVisualizationDetails"
-
-    const val DELETE_RESPONSE_LIST_TAG = "delete_response_list"
-
     private val INCLUDE_ID = Pair(ID_FIELD, "true")
     private val EXCLUDE_ACCESS = Pair(ACCESS_LIST_FIELD, "false")
     val REST_OUTPUT_PARAMS: Params = ToXContent.MapParams(mapOf(INCLUDE_ID))

@@ -61,6 +61,6 @@ internal class GetObservabilityObjectAction @Inject constructor(
      * {@inheritDoc}
      */
     override fun executeRequest(request: GetObservabilityObjectRequest, user: User?): GetObservabilityObjectResponse {
-        return NotebookActions.get(request, user)
+        return ObservabilityActions.get(request, user)
     }
 }

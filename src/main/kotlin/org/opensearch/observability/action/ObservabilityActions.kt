@@ -30,7 +30,7 @@ package org.opensearch.observability.action
 import org.opensearch.OpenSearchStatusException
 import org.opensearch.commons.authuser.User
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
-import org.opensearch.observability.index.NotebooksIndex
+import org.opensearch.observability.index.ObservabilityIndex
 import org.opensearch.observability.model.CreateObservabilityObjectRequest
 import org.opensearch.observability.model.CreateObservabilityObjectResponse
 import org.opensearch.observability.model.DeleteObservabilityObjectRequest
@@ -49,8 +49,8 @@ import java.time.Instant
 /**
  * Notebook index operation actions.
  */
-internal object NotebookActions {
-    private val log by logger(NotebookActions::class.java)
+internal object ObservabilityActions {
+    private val log by logger(ObservabilityActions::class.java)
 
     /**
      * Create new notebook
@@ -69,7 +69,7 @@ internal object NotebookActions {
             request.type,
             request.objectData
         )
-        val docId = NotebooksIndex.createObservabilityObject(objectDoc)
+        val docId = ObservabilityIndex.createObservabilityObject(objectDoc)
         docId ?: throw OpenSearchStatusException(
             "Notebook Creation failed",
             RestStatus.INTERNAL_SERVER_ERROR
@@ -85,7 +85,7 @@ internal object NotebookActions {
     fun update(request: UpdateObservabilityObjectRequest, user: User?): UpdateObservabilityObjectResponse {
         log.info("$LOG_PREFIX:ObservabilityObject-update ${request.objectId}")
         UserAccessManager.validateUser(user)
-        val observabilityObject = NotebooksIndex.getObservabilityObject(request.objectId)
+        val observabilityObject = ObservabilityIndex.getObservabilityObject(request.objectId)
         observabilityObject
             ?: throw OpenSearchStatusException(
                 "ObservabilityObject ${request.objectId} not found",
@@ -107,7 +107,7 @@ internal object NotebookActions {
             request.type,
             request.objectData
         )
-        if (!NotebooksIndex.updateObservabilityObject(request.objectId, objectDoc)) {
+        if (!ObservabilityIndex.updateObservabilityObject(request.objectId, objectDoc)) {
             throw OpenSearchStatusException("ObservabilityObject Update failed", RestStatus.INTERNAL_SERVER_ERROR)
         }
         return UpdateObservabilityObjectResponse(request.objectId)
@@ -136,7 +136,7 @@ internal object NotebookActions {
      */
     private fun info(objectId: String, user: User?): GetObservabilityObjectResponse {
         log.info("$LOG_PREFIX:ObservabilityObject-info $objectId")
-        val observabilityObjectDocInfo = NotebooksIndex.getObservabilityObject(objectId)
+        val observabilityObjectDocInfo = ObservabilityIndex.getObservabilityObject(objectId)
         observabilityObjectDocInfo
             ?: run {
                 throw OpenSearchStatusException("ObservabilityObject $objectId not found", RestStatus.NOT_FOUND)
@@ -164,7 +164,7 @@ internal object NotebookActions {
      */
     private fun info(objectIds: Set<String>, user: User?): GetObservabilityObjectResponse {
         log.info("$LOG_PREFIX:ObservabilityObject-info $objectIds")
-        val objectDocs = NotebooksIndex.getObservabilityObjects(objectIds)
+        val objectDocs = ObservabilityIndex.getObservabilityObjects(objectIds)
         if (objectDocs.size != objectIds.size) {
             val mutableSet = objectIds.toMutableSet()
             objectDocs.forEach { mutableSet.remove(it.id) }
@@ -203,7 +203,7 @@ internal object NotebookActions {
      */
     private fun getAll(request: GetObservabilityObjectRequest, user: User?): GetObservabilityObjectResponse {
         log.info("$LOG_PREFIX:ObservabilityObject-getAll")
-        val searchResult = NotebooksIndex.getAllObservabilityObjects(
+        val searchResult = ObservabilityIndex.getAllObservabilityObjects(
             UserAccessManager.getUserTenant(user),
             UserAccessManager.getSearchAccessInfo(user),
             request
@@ -234,7 +234,7 @@ internal object NotebookActions {
     private fun delete(objectId: String, user: User?): DeleteObservabilityObjectResponse {
         log.info("$LOG_PREFIX:ObservabilityObject-delete $objectId")
         UserAccessManager.validateUser(user)
-        val observabilityObjectDocInfo = NotebooksIndex.getObservabilityObject(objectId)
+        val observabilityObjectDocInfo = ObservabilityIndex.getObservabilityObject(objectId)
         observabilityObjectDocInfo
             ?: run {
                 throw OpenSearchStatusException(
@@ -250,7 +250,7 @@ internal object NotebookActions {
                 RestStatus.FORBIDDEN
             )
         }
-        if (!NotebooksIndex.deleteObservabilityObject(objectId)) {
+        if (!ObservabilityIndex.deleteObservabilityObject(objectId)) {
             throw OpenSearchStatusException(
                 "ObservabilityObject $objectId delete failed",
                 RestStatus.REQUEST_TIMEOUT
@@ -268,7 +268,7 @@ internal object NotebookActions {
     private fun delete(objectIds: Set<String>, user: User?): DeleteObservabilityObjectResponse {
         log.info("$LOG_PREFIX:ObservabilityObject-delete $objectIds")
         UserAccessManager.validateUser(user)
-        val configDocs = NotebooksIndex.getObservabilityObjects(objectIds)
+        val configDocs = ObservabilityIndex.getObservabilityObjects(objectIds)
         if (configDocs.size != objectIds.size) {
             val mutableSet = objectIds.toMutableSet()
             configDocs.forEach { mutableSet.remove(it.id) }
@@ -286,7 +286,7 @@ internal object NotebookActions {
                 )
             }
         }
-        val deleteStatus = NotebooksIndex.deleteObservabilityObjects(objectIds)
+        val deleteStatus = ObservabilityIndex.deleteObservabilityObjects(objectIds)
         return DeleteObservabilityObjectResponse(deleteStatus)
     }
 }

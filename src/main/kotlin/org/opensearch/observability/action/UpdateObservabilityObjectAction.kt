@@ -59,6 +59,6 @@ internal class UpdateObservabilityObjectAction @Inject constructor(
      * {@inheritDoc}
      */
     override fun executeRequest(request: UpdateObservabilityObjectRequest, user: User?): UpdateObservabilityObjectResponse {
-        return NotebookActions.update(request, user)
+        return ObservabilityActions.update(request, user)
     }
 }

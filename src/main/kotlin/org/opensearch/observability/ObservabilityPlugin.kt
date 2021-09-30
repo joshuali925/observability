@@ -29,9 +29,8 @@ package org.opensearch.observability
 import org.opensearch.observability.action.DeleteObservabilityObjectAction
 import org.opensearch.observability.action.GetObservabilityObjectAction
 import org.opensearch.observability.action.UpdateObservabilityObjectAction
-import org.opensearch.observability.index.NotebooksIndex
-import org.opensearch.observability.resthandler.NotebookListRestHandler
-import org.opensearch.observability.resthandler.NotebookRestHandler
+import org.opensearch.observability.index.ObservabilityIndex
+import org.opensearch.observability.resthandler.ObservabilityRestHandler
 import org.opensearch.observability.settings.PluginSettings
 import org.opensearch.action.ActionRequest
 import org.opensearch.action.ActionResponse
@@ -96,7 +95,7 @@ class ObservabilityPlugin : Plugin(), ActionPlugin {
         repositoriesServiceSupplier: Supplier<RepositoriesService>
     ): Collection<Any> {
         PluginSettings.addSettingsUpdateConsumer(clusterService)
-        NotebooksIndex.initialize(client, clusterService)
+        ObservabilityIndex.initialize(client, clusterService)
         return emptyList()
     }
 
@@ -113,8 +112,7 @@ class ObservabilityPlugin : Plugin(), ActionPlugin {
         nodesInCluster: Supplier<DiscoveryNodes>
     ): List<RestHandler> {
         return listOf(
-            NotebookRestHandler(),
-            NotebookListRestHandler()
+            ObservabilityRestHandler()
         )
     }
 

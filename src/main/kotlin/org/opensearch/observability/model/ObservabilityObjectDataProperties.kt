@@ -3,9 +3,6 @@ package org.opensearch.observability.model
 import org.opensearch.common.io.stream.Writeable
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.commons.notifications.model.XParser
-import org.opensearch.observability.model.eventexplorer.SavedQuery
-import org.opensearch.observability.model.eventexplorer.SavedVisualization
-import org.opensearch.observability.model.notebook.Notebook
 
 internal object ObservabilityObjectDataProperties {
     /**

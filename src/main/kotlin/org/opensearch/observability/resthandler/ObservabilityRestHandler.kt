@@ -26,14 +26,14 @@
  */
 package org.opensearch.observability.resthandler
 
-import org.opensearch.observability.ObservabilityPlugin.Companion.BASE_NOTEBOOKS_URI
 import org.opensearch.observability.action.DeleteObservabilityObjectAction
 import org.opensearch.observability.action.GetObservabilityObjectAction
-import org.opensearch.observability.action.NotebookActions
+import org.opensearch.observability.action.ObservabilityActions
 import org.opensearch.observability.action.UpdateObservabilityObjectAction
 import org.opensearch.observability.util.contentParserNextToken
 import org.opensearch.client.node.NodeClient
 import org.opensearch.commons.utils.logger
+import org.opensearch.observability.ObservabilityPlugin.Companion.BASE_OBSERVABILITY_URI
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.action.CreateObservabilityObjectAction
 import org.opensearch.observability.index.ObservabilityQueryHelper
@@ -65,20 +65,20 @@ import java.util.*
 
 /**
  * Rest handler for notebooks lifecycle management.
- * This handler uses [NotebookActions].
+ * This handler uses [ObservabilityActions].
  */
-internal class NotebookRestHandler : BaseRestHandler() {
+internal class ObservabilityRestHandler : BaseRestHandler() {
     companion object {
-        private const val NOTEBOOKS_ACTION = "notebooks_actions"
-        private const val NOTEBOOKS_URL = "$BASE_NOTEBOOKS_URI/notebook"
-        private val log by logger(NotebookRestHandler::class.java)
+        private const val OBSERVABILITY_ACTION = "observability_actions"
+        private const val OBSERVABILITY_URL = "$BASE_OBSERVABILITY_URI/object"
+        private val log by logger(ObservabilityRestHandler::class.java)
     }
 
     /**
      * {@inheritDoc}
      */
     override fun getName(): String {
-        return NOTEBOOKS_ACTION
+        return OBSERVABILITY_ACTION
     }
 
     /**
@@ -92,30 +92,30 @@ internal class NotebookRestHandler : BaseRestHandler() {
              * Request body: Ref [org.opensearch.observability.model.CreateNotebookRequest]
              * Response body: Ref [org.opensearch.observability.model.CreateNotebookResponse]
              */
-            Route(POST, NOTEBOOKS_URL),
+            Route(POST, OBSERVABILITY_URL),
             /**
              * Update notebook
              * Request URL: PUT NOTEBOOKS_URL/{notebookId}
              * Request body: Ref [org.opensearch.observability.model.UpdateNotebookRequest]
              * Response body: Ref [org.opensearch.observability.model.UpdateNotebookResponse]
              */
-            Route(PUT, "$NOTEBOOKS_URL/{$ID_FIELD}"),
+            Route(PUT, "$OBSERVABILITY_URL/{$ID_FIELD}"),
             /**
              * Get a notebook
              * Request URL: GET NOTEBOOKS_URL/{notebookId}
              * Request body: Ref [org.opensearch.observability.model.GetNotebookRequest]
              * Response body: Ref [org.opensearch.observability.model.GetNotebookResponse]
              */
-            Route(GET, "$NOTEBOOKS_URL/{$ID_FIELD}"),
-            Route(GET, NOTEBOOKS_URL),
+            Route(GET, "$OBSERVABILITY_URL/{$ID_FIELD}"),
+            Route(GET, OBSERVABILITY_URL),
             /**
              * Delete notebook
              * Request URL: DELETE NOTEBOOKS_URL/{notebookId}
              * Request body: Ref [org.opensearch.observability.model.DeleteNotebookRequest]
              * Response body: Ref [org.opensearch.observability.model.DeleteNotebookResponse]
              */
-            Route(DELETE, "$NOTEBOOKS_URL/{$ID_FIELD}"),
-            Route(DELETE, "$NOTEBOOKS_URL")
+            Route(DELETE, "$OBSERVABILITY_URL/{$ID_FIELD}"),
+            Route(DELETE, "$OBSERVABILITY_URL")
         )
     }
 

@@ -53,7 +53,6 @@ import org.opensearch.observability.model.ObservabilityObjectSearchResult
 import org.opensearch.observability.model.RestTag.ACCESS_LIST_FIELD
 import org.opensearch.observability.model.RestTag.TENANT_FIELD
 import org.opensearch.observability.model.SearchResults
-import org.opensearch.observability.model.notebook.NotebookDetails
 import org.opensearch.observability.settings.PluginSettings
 import org.opensearch.observability.util.SecureIndexClient
 import org.opensearch.observability.util.logger
@@ -65,8 +64,8 @@ import java.util.concurrent.TimeUnit
 /**
  * Class for doing OpenSearch index operation to maintain notebooks in cluster.
  */
-internal object NotebooksIndex {
-    private val log by logger(NotebooksIndex::class.java)
+internal object ObservabilityIndex {
+    private val log by logger(ObservabilityIndex::class.java)
     const val INDEX_NAME = ".opensearch-notebooks"
     private const val OBSERVABILITY_MAPPING_FILE_NAME = "observability-mapping.yml"
     private const val OBSERVABILITY_SETTINGS_FILE_NAME = "observability-settings.yml"
@@ -103,7 +102,7 @@ internal object NotebooksIndex {
     @Suppress("TooGenericExceptionCaught")
     private fun createIndex() {
         if (!isIndexExists()) {
-            val classLoader = NotebooksIndex::class.java.classLoader
+            val classLoader = ObservabilityIndex::class.java.classLoader
             val indexMappingSource = classLoader.getResource(OBSERVABILITY_MAPPING_FILE_NAME)?.readText()!!
             val indexSettingsSource = classLoader.getResource(OBSERVABILITY_SETTINGS_FILE_NAME)?.readText()!!
             val request = CreateIndexRequest(INDEX_NAME)
@@ -136,138 +135,6 @@ internal object NotebooksIndex {
         val clusterState = clusterService.state()
         return clusterState.routingTable.hasIndex(INDEX_NAME)
     }
-
-    /**
-     * create a new doc for notebookDetails
-     * @param notebookDetails the Notebook details
-     * @return notebook.id if successful, null otherwise
-     * @throws java.util.concurrent.ExecutionException with a cause
-     */
-    fun createNotebook(notebookDetails: NotebookDetails): String? {
-        createIndex()
-        val indexRequest = IndexRequest(INDEX_NAME)
-            .source(notebookDetails.toXContent())
-            .create(true)
-        val actionFuture = client.index(indexRequest)
-        val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
-        return if (response.result != DocWriteResponse.Result.CREATED) {
-            log.warn("$LOG_PREFIX:createNotebook - response:$response")
-            null
-        } else {
-            response.id
-        }
-    }
-
-    /**
-     * Query index for notebook ID
-     * @param id the id for the document
-     * @return Notebook details on success, null otherwise
-     */
-    fun getNotebook(id: String): NotebookDetails? {
-        createIndex()
-        val getRequest = GetRequest(INDEX_NAME).id(id)
-        val actionFuture = client.get(getRequest)
-        val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
-        return if (response.sourceAsString == null) {
-            log.warn("$LOG_PREFIX:getNotebook - $id not found; response:$response")
-            null
-        } else {
-            val parser = XContentType.JSON.xContent().createParser(
-                NamedXContentRegistry.EMPTY,
-                LoggingDeprecationHandler.INSTANCE,
-                response.sourceAsString
-            )
-            parser.nextToken()
-            NotebookDetails.parse(parser, id)
-        }
-    }
-
-    /**
-     * Query index for notebook for given access details
-     * @param tenant the tenant of the user
-     * @param access the list of access details to search notebooks for.
-     * @param from the paginated start index
-     * @param maxItems the max items to query
-     * @return search result of Notebook details
-     */
-//    fun getAllNotebooks(
-//        tenant: String,
-//        access: List<String>,
-//        request: GetAllNotebooksRequest
-//    ): NotebookDetailsSearchResults {
-//        createIndex()
-//        val queryHelper = ObservabilityQueryHelper(ObservabilityObjectType.NOTEBOOK)
-//        val sourceBuilder = SearchSourceBuilder()
-//            .timeout(TimeValue(PluginSettings.operationTimeoutMs, TimeUnit.MILLISECONDS))
-//            .sort(queryHelper.getSortField(request.sortField), request.sortOrder ?: SortOrder.ASC)
-//            .size(request.maxItems)
-//            .from(request.fromIndex)
-//        val query = QueryBuilders.boolQuery()
-//        query.filter(QueryBuilders.termsQuery(TENANT_FIELD, tenant))
-// //        query.filter(QueryBuilders.termsQuery(TYPE_FIELD, ObservabilityObjectType.NOTEBOOK))
-//        if (access.isNotEmpty()) {
-//            query.filter(QueryBuilders.termsQuery(ACCESS_LIST_FIELD, access))
-//        }
-//        queryHelper.addQueryFilters(query, request.filterParams)
-//        println("debughere")
-//        println("query:")
-//        println(query)
-//        sourceBuilder.query(query)
-//        val searchRequest = SearchRequest()
-//            .indices(INDEX_NAME)
-//            .source(sourceBuilder)
-//        val actionFuture = client.search(searchRequest)
-//        val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
-//        val result = NotebookDetailsSearchResults(request.fromIndex.toLong(), response)
-//        log.info(
-//            "$LOG_PREFIX:getAllNotebooks from:${request.fromIndex}, maxItems:${request.maxItems}, " +
-//                "sortField:${request.sortField}, sortOrder:${request.sortOrder}, " +
-//                "filterParams:${request.filterParams}, objectIdList:${request.objectIds}, " +
-//                "retCount:${result.objectList.size}, totalCount:${result.totalHits}"
-//        )
-//        return result
-//    }
-
-    /**
-     * update Notebook details for given id
-     * @param id the id for the document
-     * @param notebookDetails the Notebook details data
-     * @return true if successful, false otherwise
-     */
-    fun updateNotebook(id: String, notebookDetails: NotebookDetails): Boolean {
-        createIndex()
-        val updateRequest = UpdateRequest()
-            .index(INDEX_NAME)
-            .id(id)
-            .doc(notebookDetails.toXContent())
-            .fetchSource(true)
-        val actionFuture = client.update(updateRequest)
-        val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
-        if (response.result != DocWriteResponse.Result.UPDATED) {
-            log.warn("$LOG_PREFIX:updateNotebook failed for $id; response:$response")
-        }
-        return response.result == DocWriteResponse.Result.UPDATED
-    }
-
-    /**
-     * delete Notebook details for given id
-     * @param id the id for the document
-     * @return true if successful, false otherwise
-     */
-    fun deleteNotebook(id: String): Boolean {
-        createIndex()
-        val deleteRequest = DeleteRequest()
-            .index(INDEX_NAME)
-            .id(id)
-        val actionFuture = client.delete(deleteRequest)
-        val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
-        if (response.result != DocWriteResponse.Result.DELETED) {
-            log.warn("$LOG_PREFIX:deleteNotebook failed for $id; response:$response")
-        }
-        return response.result == DocWriteResponse.Result.DELETED
-    }
-
-    // ===================================== new methods
 
     fun createObservabilityObject(observabilityObjectDoc: ObservabilityObjectDoc): String? {
         createIndex()

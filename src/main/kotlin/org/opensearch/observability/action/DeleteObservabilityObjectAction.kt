@@ -59,6 +59,6 @@ internal class DeleteObservabilityObjectAction @Inject constructor(
      * {@inheritDoc}
      */
     override fun executeRequest(request: DeleteObservabilityObjectRequest, user: User?): DeleteObservabilityObjectResponse {
-        return NotebookActions.delete(request, user)
+        return ObservabilityActions.delete(request, user)
     }
 }
