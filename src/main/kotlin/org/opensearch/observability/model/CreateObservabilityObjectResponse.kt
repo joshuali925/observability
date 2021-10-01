@@ -19,7 +19,7 @@ import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParserUtils
 import org.opensearch.commons.utils.logger
-import org.opensearch.observability.model.RestTag.ID_FIELD
+import org.opensearch.observability.model.RestTag.OBJECT_ID_FIELD
 import java.io.IOException
 
 /**
@@ -54,21 +54,21 @@ internal class CreateObservabilityObjectResponse : BaseResponse {
                 val fieldName = parser.currentName()
                 parser.nextToken()
                 when (fieldName) {
-                    ID_FIELD -> objectId = parser.text()
+                    OBJECT_ID_FIELD -> objectId = parser.text()
                     else -> {
                         parser.skipChildren()
                         log.info("Unexpected field: $fieldName, while parsing CreateObservabilityObjectResponse")
                     }
                 }
             }
-            objectId ?: throw IllegalArgumentException("$ID_FIELD field absent")
+            objectId ?: throw IllegalArgumentException("$OBJECT_ID_FIELD field absent")
             return CreateObservabilityObjectResponse(objectId)
         }
     }
 
     /**
      * constructor for creating the class
-     * @param id the id of the created notification configuration
+     * @param id the id of the created ObservabilityObject
      */
     constructor(id: String) {
         this.objectId = id
@@ -96,7 +96,7 @@ internal class CreateObservabilityObjectResponse : BaseResponse {
     override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
         builder!!
         return builder.startObject()
-            .field(ID_FIELD, objectId)
+            .field(OBJECT_ID_FIELD, objectId)
             .endObject()
     }
 }

@@ -27,8 +27,6 @@
 
 package org.opensearch.observability.settings
 
-import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
-import org.opensearch.observability.ObservabilityPlugin.Companion.PLUGIN_NAME
 import org.apache.logging.log4j.LogManager
 import org.opensearch.bootstrap.BootstrapInfo
 import org.opensearch.cluster.service.ClusterService
@@ -36,6 +34,8 @@ import org.opensearch.common.settings.Setting
 import org.opensearch.common.settings.Setting.Property.Dynamic
 import org.opensearch.common.settings.Setting.Property.NodeScope
 import org.opensearch.common.settings.Settings
+import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
+import org.opensearch.observability.ObservabilityPlugin.Companion.PLUGIN_NAME
 import java.io.IOException
 import java.nio.file.Path
 
@@ -182,10 +182,12 @@ internal object PluginSettings {
     /**
      * Default filter-by method.
      */
-    private val DEFAULT_IGNORED_ROLES = listOf("own_index",
+    private val DEFAULT_IGNORED_ROLES = listOf(
+        "own_index",
         "opensearch_dashboards_user",
         "notebooks_full_access",
-        "notebooks_read_access")
+        "notebooks_read_access"
+    )
 
     /**
      * Operation timeout setting in ms for I/O operations
@@ -366,7 +368,8 @@ internal object PluginSettings {
      * @return list of settings defined in this plugin
      */
     fun getAllSettings(): List<Setting<*>> {
-        return listOf(OPERATION_TIMEOUT_MS,
+        return listOf(
+            OPERATION_TIMEOUT_MS,
             JOB_LOCK_DURATION_S,
             MIN_POLLING_DURATION_S,
             MAX_POLLING_DURATION_S,

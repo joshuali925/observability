@@ -18,7 +18,6 @@ import org.opensearch.common.xcontent.ToXContent
 import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParserUtils
-import org.opensearch.commons.notifications.NotificationConstants
 import org.opensearch.commons.utils.STRING_READER
 import org.opensearch.commons.utils.STRING_WRITER
 import org.opensearch.commons.utils.enumReader
@@ -106,7 +105,7 @@ internal class DeleteObservabilityObjectResponse : BaseResponse {
     override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
         builder!!
         return builder.startObject()
-            .field(NotificationConstants.DELETE_RESPONSE_LIST_TAG, objectIdToStatus)
+            .field(DELETE_RESPONSE_LIST_TAG, objectIdToStatus)
             .endObject()
     }
 

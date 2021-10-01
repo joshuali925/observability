@@ -20,7 +20,7 @@ import java.io.IOException
 import java.time.Instant
 
 /**
- * Data class representing Notification config.
+ * Data class representing ObservabilityObject.
  */
 data class ObservabilityObjectDoc(
     val updatedTime: Instant,
@@ -68,7 +68,6 @@ data class ObservabilityObjectDoc(
                     TENANT_FIELD -> tenant = parser.text()
                     ACCESS_LIST_FIELD -> access = parser.stringList()
                     else -> {
-                        println("[ObservabilityObject] in object parsing field $fieldName")
                         val objectTypeForTag = ObservabilityObjectType.fromTagOrDefault(fieldName)
                         if (objectTypeForTag != ObservabilityObjectType.NONE && objectData == null) {
                             objectData =

@@ -26,12 +26,6 @@
  */
 package org.opensearch.observability
 
-import org.opensearch.observability.action.DeleteObservabilityObjectAction
-import org.opensearch.observability.action.GetObservabilityObjectAction
-import org.opensearch.observability.action.UpdateObservabilityObjectAction
-import org.opensearch.observability.index.ObservabilityIndex
-import org.opensearch.observability.resthandler.ObservabilityRestHandler
-import org.opensearch.observability.settings.PluginSettings
 import org.opensearch.action.ActionRequest
 import org.opensearch.action.ActionResponse
 import org.opensearch.client.Client
@@ -48,6 +42,12 @@ import org.opensearch.common.xcontent.NamedXContentRegistry
 import org.opensearch.env.Environment
 import org.opensearch.env.NodeEnvironment
 import org.opensearch.observability.action.CreateObservabilityObjectAction
+import org.opensearch.observability.action.DeleteObservabilityObjectAction
+import org.opensearch.observability.action.GetObservabilityObjectAction
+import org.opensearch.observability.action.UpdateObservabilityObjectAction
+import org.opensearch.observability.index.ObservabilityIndex
+import org.opensearch.observability.resthandler.ObservabilityRestHandler
+import org.opensearch.observability.settings.PluginSettings
 import org.opensearch.plugins.ActionPlugin
 import org.opensearch.plugins.Plugin
 import org.opensearch.repositories.RepositoriesService
@@ -59,7 +59,7 @@ import org.opensearch.watcher.ResourceWatcherService
 import java.util.function.Supplier
 
 /**
- * Entry point of the OpenSearch Notebooks plugin.
+ * Entry point of the OpenSearch Observability plugin.
  * This class initializes the rest handlers.
  */
 class ObservabilityPlugin : Plugin(), ActionPlugin {
@@ -121,10 +121,22 @@ class ObservabilityPlugin : Plugin(), ActionPlugin {
      */
     override fun getActions(): List<ActionPlugin.ActionHandler<out ActionRequest, out ActionResponse>> {
         return listOf(
-            ActionPlugin.ActionHandler(CreateObservabilityObjectAction.ACTION_TYPE, CreateObservabilityObjectAction::class.java),
-            ActionPlugin.ActionHandler(DeleteObservabilityObjectAction.ACTION_TYPE, DeleteObservabilityObjectAction::class.java),
-            ActionPlugin.ActionHandler(GetObservabilityObjectAction.ACTION_TYPE, GetObservabilityObjectAction::class.java),
-            ActionPlugin.ActionHandler(UpdateObservabilityObjectAction.ACTION_TYPE, UpdateObservabilityObjectAction::class.java)
+            ActionPlugin.ActionHandler(
+                CreateObservabilityObjectAction.ACTION_TYPE,
+                CreateObservabilityObjectAction::class.java
+            ),
+            ActionPlugin.ActionHandler(
+                DeleteObservabilityObjectAction.ACTION_TYPE,
+                DeleteObservabilityObjectAction::class.java
+            ),
+            ActionPlugin.ActionHandler(
+                GetObservabilityObjectAction.ACTION_TYPE,
+                GetObservabilityObjectAction::class.java
+            ),
+            ActionPlugin.ActionHandler(
+                UpdateObservabilityObjectAction.ACTION_TYPE,
+                UpdateObservabilityObjectAction::class.java
+            )
         )
     }
 }

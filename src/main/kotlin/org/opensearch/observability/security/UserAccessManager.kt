@@ -27,10 +27,10 @@
 
 package org.opensearch.observability.security
 
+import org.opensearch.OpenSearchStatusException
 import org.opensearch.commons.authuser.User
 import org.opensearch.observability.settings.PluginSettings
 import org.opensearch.observability.settings.PluginSettings.FilterBy
-import org.opensearch.OpenSearchStatusException
 import org.opensearch.rest.RestStatus
 import java.util.stream.Collectors
 
@@ -59,30 +59,40 @@ internal object UserAccessManager {
      */
     fun validateUser(user: User?) {
         if (isUserPrivateTenant(user) && user?.name == null) {
-            throw OpenSearchStatusException("User name not provided for private tenant access",
-                RestStatus.FORBIDDEN)
+            throw OpenSearchStatusException(
+                "User name not provided for private tenant access",
+                RestStatus.FORBIDDEN
+            )
         }
         when (PluginSettings.filterBy) {
             FilterBy.NoFilter -> { // No validation
             }
             FilterBy.User -> { // User name must be present
                 user?.name
-                    ?: throw OpenSearchStatusException("Filter-by enabled with security disabled",
-                        RestStatus.FORBIDDEN)
+                    ?: throw OpenSearchStatusException(
+                        "Filter-by enabled with security disabled",
+                        RestStatus.FORBIDDEN
+                    )
             }
             FilterBy.Roles -> { // backend roles must be present
                 if (user == null || user.roles.isNullOrEmpty()) {
-                    throw OpenSearchStatusException("User doesn't have roles configured. Contact administrator.",
-                        RestStatus.FORBIDDEN)
+                    throw OpenSearchStatusException(
+                        "User doesn't have roles configured. Contact administrator.",
+                        RestStatus.FORBIDDEN
+                    )
                 } else if (user.roles.stream().filter { !PluginSettings.ignoredRoles.contains(it) }.count() == 0L) {
-                    throw OpenSearchStatusException("No distinguishing roles configured. Contact administrator.",
-                        RestStatus.FORBIDDEN)
+                    throw OpenSearchStatusException(
+                        "No distinguishing roles configured. Contact administrator.",
+                        RestStatus.FORBIDDEN
+                    )
                 }
             }
             FilterBy.BackendRoles -> { // backend roles must be present
                 if (user?.backendRoles.isNullOrEmpty()) {
-                    throw OpenSearchStatusException("User doesn't have backend roles configured. Contact administrator.",
-                        RestStatus.FORBIDDEN)
+                    throw OpenSearchStatusException(
+                        "User doesn't have backend roles configured. Contact administrator.",
+                        RestStatus.FORBIDDEN
+                    )
                 }
             }
         }

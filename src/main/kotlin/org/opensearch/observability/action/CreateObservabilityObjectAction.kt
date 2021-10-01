@@ -22,7 +22,7 @@ import org.opensearch.observability.model.CreateObservabilityObjectResponse
 import org.opensearch.transport.TransportService
 
 /**
- * Create NotificationConfig transport action
+ * Create ObservabilityObject transport action
  */
 internal class CreateObservabilityObjectAction @Inject constructor(
     transportService: TransportService,

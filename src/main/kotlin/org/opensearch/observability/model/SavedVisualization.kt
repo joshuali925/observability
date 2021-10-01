@@ -19,7 +19,6 @@ import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentFactory
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParserUtils
-import org.opensearch.commons.notifications.model.XParser
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.util.fieldIfNotNull
 import org.opensearch.observability.util.logger
@@ -30,7 +29,7 @@ import org.opensearch.observability.util.stringList
  *  * <pre> JSON format
  * {@code
  * {
- *   "query": "search source=opensearch_dashboards_sample_data_logs | where utc_time > timestamp('2021-07-01 00:00:00') and utc_time < timestamp('2021-07-02 00:00:00')",
+ *   "query": "source=index | where utc_time > timestamp('2021-07-01 00:00:00') and utc_time < timestamp('2021-07-02 00:00:00')",
  *   "selected_date_range": {
  *     "start": "now/15m",
  *     "end": "now",
@@ -78,9 +77,9 @@ internal data class SavedVisualization(
         val xParser = XParser { parse(it) }
 
         /**
-         * Parse the data from parser and create Notebook object
+         * Parse the data from parser and create SavedVisualization object
          * @param parser data referenced at parser
-         * @return created Notebook object
+         * @return created SavedVisualization object
          */
         fun parse(parser: XContentParser): SavedVisualization {
             var name: String? = null

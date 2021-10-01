@@ -30,15 +30,14 @@ package org.opensearch.observability.model
 import org.opensearch.common.io.stream.StreamInput
 import org.opensearch.common.io.stream.StreamOutput
 import org.opensearch.common.io.stream.Writeable
-import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
-import org.opensearch.observability.util.logger
 import org.opensearch.common.xcontent.ToXContent
 import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentFactory
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParserUtils
-import org.opensearch.commons.notifications.model.XParser
+import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.util.fieldIfNotNull
+import org.opensearch.observability.util.logger
 
 /**
  * Notebook main data class.
@@ -381,7 +380,6 @@ internal data class Notebook(
          * {@inheritDoc}
          */
         override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
-            val xContentParams = params ?: RestTag.REST_OUTPUT_PARAMS
             builder!!
             builder.startObject()
                 .field(RESULT_TAG, result)

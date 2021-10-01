@@ -20,7 +20,7 @@ import org.opensearch.common.xcontent.XContentParser
 import java.io.IOException
 
 /**
- * Action Response for getting notification configuration.
+ * Action Response for getting ObservabilityObject.
  */
 internal class GetObservabilityObjectResponse : BaseResponse {
     val searchResult: ObservabilityObjectSearchResult
@@ -45,7 +45,7 @@ internal class GetObservabilityObjectResponse : BaseResponse {
 
     /**
      * constructor for creating the class
-     * @param searchResult the notification configuration list
+     * @param searchResult the ObservabilityObject list
      */
     constructor(searchResult: ObservabilityObjectSearchResult) {
         this.searchResult = searchResult

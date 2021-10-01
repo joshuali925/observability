@@ -23,7 +23,7 @@ import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParserUtils
 import org.opensearch.commons.utils.fieldIfNotNull
 import org.opensearch.commons.utils.logger
-import org.opensearch.observability.model.RestTag.ID_FIELD
+import org.opensearch.observability.model.RestTag.OBJECT_ID_FIELD
 import java.io.IOException
 
 /**
@@ -64,7 +64,6 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
                 parser.nextToken()
                 when (fieldName) {
                     else -> {
-                        println("[ObservabilityObject] in object parsing field $fieldName")
                         val objectTypeForTag = ObservabilityObjectType.fromTagOrDefault(fieldName)
                         if (objectTypeForTag != ObservabilityObjectType.NONE && baseObjectData == null) {
                             baseObjectData =
@@ -92,15 +91,15 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
     override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
         builder!!
         return builder.startObject()
-            .fieldIfNotNull(ID_FIELD, objectId)
+            .fieldIfNotNull(OBJECT_ID_FIELD, objectId)
             .field(type.tag, objectData)
             .endObject()
     }
 
     /**
      * constructor for creating the class
-     * @param objectData the notification config object
-     * @param objectId optional id to use for notification config object
+     * @param objectData the ObservabilityObject
+     * @param objectId optional id to use for ObservabilityObject
      */
     constructor(objectData: BaseObjectData, type: ObservabilityObjectType, objectId: String? = null) {
         this.objectData = objectData

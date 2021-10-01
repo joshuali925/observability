@@ -47,18 +47,18 @@ import org.opensearch.rest.RestStatus
 import java.time.Instant
 
 /**
- * Notebook index operation actions.
+ * ObservabilityObject index operation actions.
  */
 internal object ObservabilityActions {
     private val log by logger(ObservabilityActions::class.java)
 
     /**
-     * Create new notebook
+     * Create new ObservabilityObject
      * @param request [CreateObservabilityObjectRequest] object
      * @return [CreateObservabilityObjectResponse]
      */
     fun create(request: CreateObservabilityObjectRequest, user: User?): CreateObservabilityObjectResponse {
-        log.info("$LOG_PREFIX:Notebook-create")
+        log.info("$LOG_PREFIX:ObservabilityObject-create")
         UserAccessManager.validateUser(user)
         val currentTime = Instant.now()
         val objectDoc = ObservabilityObjectDoc(
@@ -71,14 +71,14 @@ internal object ObservabilityActions {
         )
         val docId = ObservabilityIndex.createObservabilityObject(objectDoc)
         docId ?: throw OpenSearchStatusException(
-            "Notebook Creation failed",
+            "ObservabilityObject Creation failed",
             RestStatus.INTERNAL_SERVER_ERROR
         )
         return CreateObservabilityObjectResponse(docId)
     }
 
     /**
-     * Update Notebook
+     * Update ObservabilityObject
      * @param request [UpdateObservabilityObjectRequest] object
      * @return [UpdateObservabilityObjectResponse]
      */
@@ -227,7 +227,7 @@ internal object ObservabilityActions {
     }
 
     /**
-     * Delete Notebook
+     * Delete ObservabilityObject
      * @param request [DeleteObservabilityObjectRequest] object
      * @return [DeleteObservabilityObjectResponse]
      */

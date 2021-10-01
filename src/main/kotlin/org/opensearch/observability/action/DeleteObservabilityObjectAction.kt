@@ -38,18 +38,20 @@ import org.opensearch.observability.model.DeleteObservabilityObjectResponse
 import org.opensearch.transport.TransportService
 
 /**
- * Delete notebook transport action
+ * Delete ObservabilityObject transport action
  */
 internal class DeleteObservabilityObjectAction @Inject constructor(
     transportService: TransportService,
     client: Client,
     actionFilters: ActionFilters,
     val xContentRegistry: NamedXContentRegistry
-) : PluginBaseAction<DeleteObservabilityObjectRequest, DeleteObservabilityObjectResponse>(NAME,
+) : PluginBaseAction<DeleteObservabilityObjectRequest, DeleteObservabilityObjectResponse>(
+    NAME,
     transportService,
     client,
     actionFilters,
-    ::DeleteObservabilityObjectRequest) {
+    ::DeleteObservabilityObjectRequest
+) {
     companion object {
         private const val NAME = "cluster:admin/opendistro/notebooks/delete"
         internal val ACTION_TYPE = ActionType(NAME, ::DeleteObservabilityObjectResponse)

@@ -26,30 +26,30 @@
  */
 package org.opensearch.observability.resthandler
 
-import org.opensearch.observability.action.DeleteObservabilityObjectAction
-import org.opensearch.observability.action.GetObservabilityObjectAction
-import org.opensearch.observability.action.ObservabilityActions
-import org.opensearch.observability.action.UpdateObservabilityObjectAction
-import org.opensearch.observability.util.contentParserNextToken
 import org.opensearch.client.node.NodeClient
 import org.opensearch.commons.utils.logger
 import org.opensearch.observability.ObservabilityPlugin.Companion.BASE_OBSERVABILITY_URI
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.action.CreateObservabilityObjectAction
+import org.opensearch.observability.action.DeleteObservabilityObjectAction
+import org.opensearch.observability.action.GetObservabilityObjectAction
+import org.opensearch.observability.action.ObservabilityActions
+import org.opensearch.observability.action.UpdateObservabilityObjectAction
 import org.opensearch.observability.index.ObservabilityQueryHelper
 import org.opensearch.observability.model.CreateObservabilityObjectRequest
 import org.opensearch.observability.model.DeleteObservabilityObjectRequest
 import org.opensearch.observability.model.GetObservabilityObjectRequest
 import org.opensearch.observability.model.ObservabilityObjectType
 import org.opensearch.observability.model.RestTag.FROM_INDEX_FIELD
-import org.opensearch.observability.model.RestTag.ID_FIELD
-import org.opensearch.observability.model.RestTag.ID_LIST_FIELD
 import org.opensearch.observability.model.RestTag.MAX_ITEMS_FIELD
+import org.opensearch.observability.model.RestTag.OBJECT_ID_FIELD
+import org.opensearch.observability.model.RestTag.OBJECT_ID_LIST_FIELD
+import org.opensearch.observability.model.RestTag.OBJECT_TYPE_FIELD
 import org.opensearch.observability.model.RestTag.SORT_FIELD_FIELD
 import org.opensearch.observability.model.RestTag.SORT_ORDER_FIELD
-import org.opensearch.observability.model.RestTag.TYPE_FIELD
 import org.opensearch.observability.model.UpdateObservabilityObjectRequest
 import org.opensearch.observability.settings.PluginSettings
+import org.opensearch.observability.util.contentParserNextToken
 import org.opensearch.rest.BaseRestHandler
 import org.opensearch.rest.BaseRestHandler.RestChannelConsumer
 import org.opensearch.rest.BytesRestResponse
@@ -61,10 +61,10 @@ import org.opensearch.rest.RestRequest.Method.POST
 import org.opensearch.rest.RestRequest.Method.PUT
 import org.opensearch.rest.RestStatus
 import org.opensearch.search.sort.SortOrder
-import java.util.*
+import java.util.EnumSet
 
 /**
- * Rest handler for notebooks lifecycle management.
+ * Rest handler for observability object lifecycle management.
  * This handler uses [ObservabilityActions].
  */
 internal class ObservabilityRestHandler : BaseRestHandler() {
@@ -87,34 +87,34 @@ internal class ObservabilityRestHandler : BaseRestHandler() {
     override fun routes(): List<Route> {
         return listOf(
             /**
-             * Create a new notebook
-             * Request URL: POST NOTEBOOKS_URL
-             * Request body: Ref [org.opensearch.observability.model.CreateNotebookRequest]
-             * Response body: Ref [org.opensearch.observability.model.CreateNotebookResponse]
+             * Create a new object
+             * Request URL: POST OBSERVABILITY_URL
+             * Request body: Ref [org.opensearch.observability.model.CreateObservabilityObjectRequest]
+             * Response body: Ref [org.opensearch.observability.model.CreateObservabilityObjectResponse]
              */
             Route(POST, OBSERVABILITY_URL),
             /**
-             * Update notebook
-             * Request URL: PUT NOTEBOOKS_URL/{notebookId}
-             * Request body: Ref [org.opensearch.observability.model.UpdateNotebookRequest]
-             * Response body: Ref [org.opensearch.observability.model.UpdateNotebookResponse]
+             * Update object
+             * Request URL: PUT OBSERVABILITY_URL/{objectId}
+             * Request body: Ref [org.opensearch.observability.model.UpdateObservabilityObjectRequest]
+             * Response body: Ref [org.opensearch.observability.model.UpdateObservabilityObjectResponse]
              */
-            Route(PUT, "$OBSERVABILITY_URL/{$ID_FIELD}"),
+            Route(PUT, "$OBSERVABILITY_URL/{$OBJECT_ID_FIELD}"),
             /**
-             * Get a notebook
-             * Request URL: GET NOTEBOOKS_URL/{notebookId}
-             * Request body: Ref [org.opensearch.observability.model.GetNotebookRequest]
-             * Response body: Ref [org.opensearch.observability.model.GetNotebookResponse]
+             * Get a object
+             * Request URL: GET OBSERVABILITY_URL/{objectId}
+             * Request body: Ref [org.opensearch.observability.model.GetObservabilityObjectRequest]
+             * Response body: Ref [org.opensearch.observability.model.GetObservabilityObjectResponse]
              */
-            Route(GET, "$OBSERVABILITY_URL/{$ID_FIELD}"),
+            Route(GET, "$OBSERVABILITY_URL/{$OBJECT_ID_FIELD}"),
             Route(GET, OBSERVABILITY_URL),
             /**
-             * Delete notebook
-             * Request URL: DELETE NOTEBOOKS_URL/{notebookId}
-             * Request body: Ref [org.opensearch.observability.model.DeleteNotebookRequest]
-             * Response body: Ref [org.opensearch.observability.model.DeleteNotebookResponse]
+             * Delete object
+             * Request URL: DELETE OBSERVABILITY_URL/{objectId}
+             * Request body: Ref [org.opensearch.observability.model.DeleteObservabilityObjectRequest]
+             * Response body: Ref [org.opensearch.observability.model.DeleteObservabilityObjectResponse]
              */
-            Route(DELETE, "$OBSERVABILITY_URL/{$ID_FIELD}"),
+            Route(DELETE, "$OBSERVABILITY_URL/{$OBJECT_ID_FIELD}"),
             Route(DELETE, "$OBSERVABILITY_URL")
         )
     }
@@ -124,9 +124,9 @@ internal class ObservabilityRestHandler : BaseRestHandler() {
      */
     override fun responseParams(): Set<String> {
         return setOf(
-            ID_FIELD,
-            ID_LIST_FIELD,
-            TYPE_FIELD,
+            OBJECT_ID_FIELD,
+            OBJECT_ID_LIST_FIELD,
+            OBJECT_TYPE_FIELD,
             SORT_FIELD_FIELD,
             SORT_ORDER_FIELD,
             FROM_INDEX_FIELD,
@@ -148,19 +148,17 @@ internal class ObservabilityRestHandler : BaseRestHandler() {
         return RestChannelConsumer {
             client.execute(
                 UpdateObservabilityObjectAction.ACTION_TYPE,
-                UpdateObservabilityObjectRequest.parse(request.contentParserNextToken(), request.param(ID_FIELD)),
+                UpdateObservabilityObjectRequest.parse(request.contentParserNextToken(), request.param(OBJECT_ID_FIELD)),
                 RestResponseToXContentListener(it)
             )
         }
     }
 
     private fun executeGetRequest(request: RestRequest, client: NodeClient): RestChannelConsumer {
-        val objectId: String? = request.param(ID_FIELD)
-        val objectIdListString: String? = request.param(ID_LIST_FIELD)
+        val objectId: String? = request.param(OBJECT_ID_FIELD)
+        val objectIdListString: String? = request.param(OBJECT_ID_LIST_FIELD)
         val objectIdList = getObjectIdSet(objectId, objectIdListString)
-        val types: EnumSet<ObservabilityObjectType> = getTypesSet(request.param(TYPE_FIELD))
-        println("types debug first")
-        println(types)
+        val types: EnumSet<ObservabilityObjectType> = getTypesSet(request.param(OBJECT_TYPE_FIELD))
         val sortField: String? = request.param(SORT_FIELD_FIELD)
         val sortOrderString: String? = request.param(SORT_ORDER_FIELD)
         val sortOrder: SortOrder? = if (sortOrderString == null) {
@@ -196,9 +194,9 @@ internal class ObservabilityRestHandler : BaseRestHandler() {
     }
 
     private fun executeDeleteRequest(request: RestRequest, client: NodeClient): RestChannelConsumer {
-        val objectId: String? = request.param(ID_FIELD)
+        val objectId: String? = request.param(OBJECT_ID_FIELD)
         val objectIdSet: Set<String> =
-            request.paramAsStringArray(ID_LIST_FIELD, arrayOf(objectId))
+            request.paramAsStringArray(OBJECT_ID_LIST_FIELD, arrayOf(objectId))
                 .filter { s -> !s.isNullOrBlank() }
                 .toSet()
         return RestChannelConsumer {
@@ -206,7 +204,7 @@ internal class ObservabilityRestHandler : BaseRestHandler() {
                 it.sendResponse(
                     BytesRestResponse(
                         RestStatus.BAD_REQUEST,
-                        "either $ID_FIELD or $ID_LIST_FIELD is required"
+                        "either $OBJECT_ID_FIELD or $OBJECT_ID_LIST_FIELD is required"
                     )
                 )
             } else {

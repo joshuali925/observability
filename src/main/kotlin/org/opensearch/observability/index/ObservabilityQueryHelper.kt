@@ -13,9 +13,9 @@ package org.opensearch.observability.index
 
 import org.opensearch.OpenSearchStatusException
 import org.opensearch.index.query.BoolQueryBuilder
+import org.opensearch.index.query.Operator
 import org.opensearch.index.query.QueryBuilder
 import org.opensearch.index.query.QueryBuilders
-import org.opensearch.index.query.Operator
 import org.opensearch.observability.model.ObservabilityObjectType
 import org.opensearch.observability.model.RestTag.CREATED_TIME_FIELD
 import org.opensearch.observability.model.RestTag.NAME_FIELD
@@ -49,6 +49,12 @@ internal class ObservabilityQueryHelper(private val types: EnumSet<Observability
         val FILTER_PARAMS = ALL_FIELDS.union(setOf(QUERY_FIELD))
     }
 
+    private val prefixes = if (types.size == 0) {
+        ObservabilityObjectType.getAll()
+    } else {
+        types
+    }
+
     fun addSortField(sourceBuilder: SearchSourceBuilder, sortField: String?, sortOrder: SortOrder?) {
         val order = sortOrder ?: SortOrder.ASC
         if (sortField == null) {
@@ -66,23 +72,15 @@ internal class ObservabilityQueryHelper(private val types: EnumSet<Observability
     }
 
     fun addTypeFilters(query: BoolQueryBuilder) {
-        types.forEach {
-            query.should().add(QueryBuilders.existsQuery(it.tag))
+        if (types.size > 0) {
+            types.forEach {
+                query.should().add(QueryBuilders.existsQuery(it.tag))
+            }
+            query.minimumShouldMatch(1)
         }
     }
 
     fun addQueryFilters(query: BoolQueryBuilder, filterParams: Map<String, String>) {
-        println("debug filterparams")
-        println(filterParams)
-        filterParams.forEach {
-            when {
-                QUERY_FIELD == it.key -> println("query")
-                METADATA_RANGE_FIELDS.contains(it.key) -> println("metadata")
-                KEYWORD_FIELDS.contains(it.key) -> println("keyword")
-                TEXT_FIELDS.contains(it.key) -> println("text")
-                else -> println("else")
-            }
-        }
         filterParams.forEach {
             when {
                 QUERY_FIELD == it.key -> query.filter(getQueryAllBuilder(it.value)) // all text search
@@ -98,7 +96,7 @@ internal class ObservabilityQueryHelper(private val types: EnumSet<Observability
         val allQuery = QueryBuilders.queryStringQuery(queryValue)
         // Searching on metadata field is not supported. skip adding METADATA_FIELDS
         OBSERVABILITY_OBJECT_FIELDS.forEach {
-            types.forEach { type -> allQuery.field("$type.$it") }
+            prefixes.forEach { type -> allQuery.field("$type.$it") }
         }
         return allQuery
     }
@@ -123,21 +121,17 @@ internal class ObservabilityQueryHelper(private val types: EnumSet<Observability
     }
 
     private fun addTermQueryBuilder(query: BoolQueryBuilder, queryKey: String, queryValue: String) {
-        types.forEach { query.filter(QueryBuilders.termQuery("${it.tag}.$queryKey", queryValue)) }
+        prefixes.forEach { query.filter(QueryBuilders.termQuery("${it.tag}.$queryKey", queryValue)) }
     }
 
     private fun addTermsQueryBuilder(query: BoolQueryBuilder, queryKey: String, queryValue: String) {
-        types.forEach { query.filter(QueryBuilders.termsQuery("${it.tag}.$queryKey", queryValue.split(","))) }
+        prefixes.forEach { query.filter(QueryBuilders.termsQuery("${it.tag}.$queryKey", queryValue.split(","))) }
     }
 
     private fun addMatchQueryBuilder(query: BoolQueryBuilder, queryKey: String, queryValue: String) {
-        val prefixes = if (types.size == 0) {
-            ObservabilityObjectType.getAll()
-        } else {
-            types
-        }
         prefixes.forEach {
             query.should().add(QueryBuilders.matchQuery("${it.tag}.$queryKey", queryValue).operator(Operator.AND))
         }
+        query.minimumShouldMatch(1)
     }
 }

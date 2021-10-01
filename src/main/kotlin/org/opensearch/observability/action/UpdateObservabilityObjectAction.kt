@@ -27,29 +27,31 @@
 
 package org.opensearch.observability.action
 
-import org.opensearch.commons.authuser.User
 import org.opensearch.action.ActionType
 import org.opensearch.action.support.ActionFilters
 import org.opensearch.client.Client
 import org.opensearch.common.inject.Inject
 import org.opensearch.common.xcontent.NamedXContentRegistry
+import org.opensearch.commons.authuser.User
 import org.opensearch.observability.model.UpdateObservabilityObjectRequest
 import org.opensearch.observability.model.UpdateObservabilityObjectResponse
 import org.opensearch.transport.TransportService
 
 /**
- * Update notebook transport action
+ * Update ObservabilityObject transport action
  */
 internal class UpdateObservabilityObjectAction @Inject constructor(
     transportService: TransportService,
     client: Client,
     actionFilters: ActionFilters,
     val xContentRegistry: NamedXContentRegistry
-) : PluginBaseAction<UpdateObservabilityObjectRequest, UpdateObservabilityObjectResponse>(NAME,
+) : PluginBaseAction<UpdateObservabilityObjectRequest, UpdateObservabilityObjectResponse>(
+    NAME,
     transportService,
     client,
     actionFilters,
-    ::UpdateObservabilityObjectRequest) {
+    ::UpdateObservabilityObjectRequest
+) {
     companion object {
         private const val NAME = "cluster:admin/opendistro/notebooks/update"
         internal val ACTION_TYPE = ActionType(NAME, ::UpdateObservabilityObjectResponse)

@@ -26,7 +26,7 @@
 #
 ##
 
-# Settings file for the notebooks index
+# Settings file for the observability index
 index:
   number_of_shards: "1"
   auto_expand_replicas: "0-1"

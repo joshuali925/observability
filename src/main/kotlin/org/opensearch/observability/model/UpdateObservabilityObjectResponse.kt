@@ -27,8 +27,6 @@
 
 package org.opensearch.observability.model
 
-import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
-import org.opensearch.observability.util.logger
 import org.opensearch.common.io.stream.StreamInput
 import org.opensearch.common.io.stream.StreamOutput
 import org.opensearch.common.xcontent.ToXContent
@@ -36,15 +34,17 @@ import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentParser
 import org.opensearch.common.xcontent.XContentParser.Token
 import org.opensearch.common.xcontent.XContentParserUtils
-import org.opensearch.observability.model.RestTag.ID_FIELD
+import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
+import org.opensearch.observability.model.RestTag.OBJECT_ID_FIELD
+import org.opensearch.observability.util.logger
 import java.io.IOException
 
 /**
- * Notebook-update response.
+ * ObservabilityObject-update response.
  * <pre> JSON format
  * {@code
  * {
- *   "notebookId":"notebookId"
+ *   "objectId":"objectId"
  * }
  * }</pre>
  */
@@ -72,14 +72,14 @@ internal class UpdateObservabilityObjectResponse(
                 val fieldName = parser.currentName()
                 parser.nextToken()
                 when (fieldName) {
-                    ID_FIELD -> objectId = parser.text()
+                    OBJECT_ID_FIELD -> objectId = parser.text()
                     else -> {
                         parser.skipChildren()
                         log.info("$LOG_PREFIX:Skipping Unknown field $fieldName")
                     }
                 }
             }
-            objectId ?: throw IllegalArgumentException("$ID_FIELD field absent")
+            objectId ?: throw IllegalArgumentException("$OBJECT_ID_FIELD field absent")
             return UpdateObservabilityObjectResponse(objectId)
         }
     }
@@ -97,7 +97,7 @@ internal class UpdateObservabilityObjectResponse(
      */
     override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
         return builder!!.startObject()
-            .field(ID_FIELD, objectId)
+            .field(OBJECT_ID_FIELD, objectId)
             .endObject()
     }
 }

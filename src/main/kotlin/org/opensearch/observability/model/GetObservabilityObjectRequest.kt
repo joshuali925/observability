@@ -33,16 +33,16 @@ import org.opensearch.observability.model.RestTag.FILTER_PARAM_LIST_FIELD
 import org.opensearch.observability.model.RestTag.FROM_INDEX_FIELD
 import org.opensearch.observability.model.RestTag.MAX_ITEMS_FIELD
 import org.opensearch.observability.model.RestTag.OBJECT_ID_LIST_FIELD
+import org.opensearch.observability.model.RestTag.OBJECT_TYPE_FIELD
 import org.opensearch.observability.model.RestTag.SORT_FIELD_FIELD
 import org.opensearch.observability.model.RestTag.SORT_ORDER_FIELD
-import org.opensearch.observability.model.RestTag.TYPE_FIELD
 import org.opensearch.observability.settings.PluginSettings
 import org.opensearch.search.sort.SortOrder
 import java.io.IOException
 import java.util.EnumSet
 
 /**
- * Action Request for getting notification configuration.
+ * Action Request for getting ObservabilityObject.
  */
 class GetObservabilityObjectRequest : ActionRequest, ToXContentObject {
     val objectIds: Set<String>
@@ -86,7 +86,7 @@ class GetObservabilityObjectRequest : ActionRequest, ToXContentObject {
                 parser.nextToken()
                 when (fieldName) {
                     OBJECT_ID_LIST_FIELD -> objectIdList = parser.stringList().toSet()
-                    TYPE_FIELD -> types = parser.enumSet(ObservabilityObjectType.enumParser)
+                    OBJECT_TYPE_FIELD -> types = parser.enumSet(ObservabilityObjectType.enumParser)
                     FROM_INDEX_FIELD -> fromIndex = parser.intValue()
                     MAX_ITEMS_FIELD -> maxItems = parser.intValue()
                     SORT_FIELD_FIELD -> sortField = parser.text()
@@ -116,7 +116,7 @@ class GetObservabilityObjectRequest : ActionRequest, ToXContentObject {
     override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
         return builder!!.startObject()
             .field(OBJECT_ID_LIST_FIELD, objectIds)
-            .field(TYPE_FIELD, types)
+            .field(OBJECT_TYPE_FIELD, types)
             .field(FROM_INDEX_FIELD, fromIndex)
             .field(MAX_ITEMS_FIELD, maxItems)
             .fieldIfNotNull(SORT_FIELD_FIELD, sortField)
@@ -134,6 +134,7 @@ class GetObservabilityObjectRequest : ActionRequest, ToXContentObject {
      * @param sortOrder the sort order if response has many items
      * @param filterParams the filter parameters
      */
+    @Suppress("LongParameterList")
     constructor(
         objectIds: Set<String> = setOf(),
         types: EnumSet<ObservabilityObjectType> = EnumSet.noneOf(ObservabilityObjectType::class.java),

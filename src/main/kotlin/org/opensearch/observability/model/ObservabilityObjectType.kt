@@ -13,12 +13,13 @@ package org.opensearch.observability.model
 
 import org.opensearch.commons.utils.EnumParser
 import org.opensearch.observability.model.RestTag.NOTEBOOK_FIELD
+import org.opensearch.observability.model.RestTag.OPERATIONAL_PANEL_FIELD
 import org.opensearch.observability.model.RestTag.SAVED_QUERY_FIELD
 import org.opensearch.observability.model.RestTag.SAVED_VISUALIZATION_FIELD
 import java.util.EnumSet
 
 /**
- * Enum for Notification config type
+ * Enum for ObservabilityObject type
  */
 enum class ObservabilityObjectType(val tag: String) {
     NONE("none") {
@@ -41,7 +42,7 @@ enum class ObservabilityObjectType(val tag: String) {
             return tag
         }
     },
-    OPERATIONAL_PANEL("operational_panel") {
+    OPERATIONAL_PANEL(OPERATIONAL_PANEL_FIELD) {
         override fun toString(): String {
             return tag
         }

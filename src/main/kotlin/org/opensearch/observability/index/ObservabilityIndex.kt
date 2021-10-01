@@ -62,8 +62,9 @@ import org.opensearch.search.builder.SearchSourceBuilder
 import java.util.concurrent.TimeUnit
 
 /**
- * Class for doing OpenSearch index operation to maintain notebooks in cluster.
+ * Class for doing OpenSearch index operation to maintain observability objects in cluster.
  */
+@Suppress("TooManyFunctions")
 internal object ObservabilityIndex {
     private val log by logger(ObservabilityIndex::class.java)
     const val INDEX_NAME = ".opensearch-notebooks"
@@ -101,6 +102,7 @@ internal object ObservabilityIndex {
      */
     @Suppress("TooGenericExceptionCaught")
     private fun createIndex() {
+        // TODO check if .opensearch-notebooks index exists and reindex
         if (!isIndexExists()) {
             val classLoader = ObservabilityIndex::class.java.classLoader
             val indexMappingSource = classLoader.getResource(OBSERVABILITY_MAPPING_FILE_NAME)?.readText()!!
@@ -121,9 +123,6 @@ internal object ObservabilityIndex {
                     throw exception
                 }
             }
-        } else {
-            // else if index mapping is old variable is true
-            // TODO update mapping here
         }
     }
 
@@ -136,24 +135,34 @@ internal object ObservabilityIndex {
         return clusterState.routingTable.hasIndex(INDEX_NAME)
     }
 
+    /**
+     * Create observability object
+     *
+     * @param observabilityObjectDoc
+     * @return object id if successful, otherwise null
+     */
     fun createObservabilityObject(observabilityObjectDoc: ObservabilityObjectDoc): String? {
         createIndex()
         val xContent = observabilityObjectDoc.toXContent()
-        println("debug index create")
-        println(xContent)
         val indexRequest = IndexRequest(INDEX_NAME)
             .source(xContent)
             .create(true)
         val actionFuture = client.index(indexRequest)
         val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
         return if (response.result != DocWriteResponse.Result.CREATED) {
-            log.warn("$LOG_PREFIX:createNotebook - response:$response")
+            log.warn("$LOG_PREFIX:createObservabilityObject - response:$response")
             null
         } else {
             response.id
         }
     }
 
+    /**
+     * Get observability object
+     *
+     * @param id
+     * @return [ObservabilityObjectDocInfo]
+     */
     fun getObservabilityObject(id: String): ObservabilityObjectDocInfo? {
         createIndex()
         val getRequest = GetRequest(INDEX_NAME).id(id)
@@ -162,6 +171,12 @@ internal object ObservabilityIndex {
         return parseObservabilityObjectDoc(id, response)
     }
 
+    /**
+     * Get multiple observability objects
+     *
+     * @param ids
+     * @return list of [ObservabilityObjectDocInfo]
+     */
     fun getObservabilityObjects(ids: Set<String>): List<ObservabilityObjectDocInfo> {
         createIndex()
         val getRequest = MultiGetRequest()
@@ -171,6 +186,13 @@ internal object ObservabilityIndex {
         return response.responses.mapNotNull { parseObservabilityObjectDoc(it.id, it.response) }
     }
 
+    /**
+     * Parse observability object doc
+     *
+     * @param id
+     * @param response
+     * @return [ObservabilityObjectDocInfo]
+     */
     private fun parseObservabilityObjectDoc(id: String, response: GetResponse): ObservabilityObjectDocInfo? {
         return if (response.sourceAsString == null) {
             log.warn("$LOG_PREFIX:getObservabilityObject - $id not found; response:$response")
@@ -187,14 +209,20 @@ internal object ObservabilityIndex {
         }
     }
 
+    /**
+     * Get all observability objects
+     *
+     * @param tenant
+     * @param access
+     * @param request
+     * @return [ObservabilityObjectSearchResult]
+     */
     fun getAllObservabilityObjects(
         tenant: String,
         access: List<String>,
         request: GetObservabilityObjectRequest
     ): ObservabilityObjectSearchResult {
         createIndex()
-        println("types debug")
-        println(request.types)
         val queryHelper = ObservabilityQueryHelper(request.types)
         val sourceBuilder = SearchSourceBuilder()
             .timeout(TimeValue(PluginSettings.operationTimeoutMs, TimeUnit.MILLISECONDS))
@@ -207,11 +235,8 @@ internal object ObservabilityIndex {
         if (access.isNotEmpty()) {
             query.filter(QueryBuilders.termsQuery(ACCESS_LIST_FIELD, access))
         }
-        query.minimumShouldMatch(1)
         queryHelper.addTypeFilters(query)
         queryHelper.addQueryFilters(query, request.filterParams)
-        println("debug query in NotebooksIndex")
-        println(query)
         sourceBuilder.query(query)
         val searchRequest = SearchRequest()
             .indices(INDEX_NAME)
@@ -227,6 +252,13 @@ internal object ObservabilityIndex {
         return result
     }
 
+    /**
+     * Update observability object
+     *
+     * @param id
+     * @param observabilityObjectDoc
+     * @return true if successful, otherwise false
+     */
     fun updateObservabilityObject(id: String, observabilityObjectDoc: ObservabilityObjectDoc): Boolean {
         createIndex()
         val updateRequest = UpdateRequest()
@@ -242,6 +274,12 @@ internal object ObservabilityIndex {
         return response.result == DocWriteResponse.Result.UPDATED
     }
 
+    /**
+     * Delete observability object
+     *
+     * @param id
+     * @return true if successful, otherwise false
+     */
     fun deleteObservabilityObject(id: String): Boolean {
         createIndex()
         val deleteRequest = DeleteRequest()
@@ -255,6 +293,12 @@ internal object ObservabilityIndex {
         return response.result == DocWriteResponse.Result.DELETED
     }
 
+    /**
+     * Delete multiple observability objects
+     *
+     * @param ids
+     * @return map of id to delete status
+     */
     fun deleteObservabilityObjects(ids: Set<String>): Map<String, RestStatus> {
         createIndex()
         val bulkRequest = BulkRequest()

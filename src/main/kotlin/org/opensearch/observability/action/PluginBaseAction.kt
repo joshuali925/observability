@@ -27,10 +27,6 @@
 
 package org.opensearch.observability.action
 
-import org.opensearch.commons.ConfigConstants.OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT
-import org.opensearch.commons.authuser.User
-import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
-import org.opensearch.observability.util.logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -43,9 +39,13 @@ import org.opensearch.action.support.ActionFilters
 import org.opensearch.action.support.HandledTransportAction
 import org.opensearch.client.Client
 import org.opensearch.common.io.stream.Writeable
+import org.opensearch.commons.ConfigConstants.OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT
+import org.opensearch.commons.authuser.User
 import org.opensearch.index.IndexNotFoundException
 import org.opensearch.index.engine.VersionConflictEngineException
 import org.opensearch.indices.InvalidIndexNameException
+import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
+import org.opensearch.observability.util.logger
 import org.opensearch.rest.RestStatus
 import org.opensearch.tasks.Task
 import org.opensearch.transport.TransportService
@@ -82,8 +82,12 @@ abstract class PluginBaseAction<Request : ActionRequest, Response : ActionRespon
                 listener.onFailure(exception)
             } catch (exception: OpenSearchSecurityException) {
                 log.warn("$LOG_PREFIX:OpenSearchSecurityException:", exception)
-                listener.onFailure(OpenSearchStatusException("Permissions denied: ${exception.message} - Contact administrator",
-                    RestStatus.FORBIDDEN))
+                listener.onFailure(
+                    OpenSearchStatusException(
+                        "Permissions denied: ${exception.message} - Contact administrator",
+                        RestStatus.FORBIDDEN
+                    )
+                )
             } catch (exception: VersionConflictEngineException) {
                 log.warn("$LOG_PREFIX:VersionConflictEngineException:", exception)
                 listener.onFailure(OpenSearchStatusException(exception.message, RestStatus.CONFLICT))

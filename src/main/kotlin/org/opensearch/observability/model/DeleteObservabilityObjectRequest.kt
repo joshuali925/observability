@@ -25,8 +25,8 @@ import org.opensearch.common.xcontent.XContentParserUtils
 import org.opensearch.commons.utils.logger
 import org.opensearch.commons.utils.stringList
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
-import org.opensearch.observability.model.RestTag.ID_FIELD
-import org.opensearch.observability.model.RestTag.ID_LIST_FIELD
+import org.opensearch.observability.model.RestTag.OBJECT_ID_FIELD
+import org.opensearch.observability.model.RestTag.OBJECT_ID_LIST_FIELD
 import java.io.IOException
 
 /**
@@ -62,14 +62,14 @@ internal class DeleteObservabilityObjectRequest : ActionRequest, ToXContentObjec
                 val fieldName = parser.currentName()
                 parser.nextToken()
                 when (fieldName) {
-                    ID_LIST_FIELD -> objectIds = parser.stringList().toSet()
+                    OBJECT_ID_LIST_FIELD -> objectIds = parser.stringList().toSet()
                     else -> {
                         parser.skipChildren()
                         log.info("$LOG_PREFIX:Skipping Unknown field $fieldName")
                     }
                 }
             }
-            objectIds ?: throw IllegalArgumentException("$ID_FIELD field absent")
+            objectIds ?: throw IllegalArgumentException("$OBJECT_ID_FIELD field absent")
             return DeleteObservabilityObjectRequest(objectIds)
         }
     }
@@ -105,7 +105,7 @@ internal class DeleteObservabilityObjectRequest : ActionRequest, ToXContentObjec
     override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
         builder!!
         return builder.startObject()
-            .field(ID_LIST_FIELD, objectIds)
+            .field(OBJECT_ID_LIST_FIELD, objectIds)
             .endObject()
     }
 
