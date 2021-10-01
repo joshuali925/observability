@@ -44,6 +44,7 @@ import org.opensearch.observability.util.stringList
  *       "host"
  *     ]
  *   },
+ *   "type": "bar",
  *   "name": "Logs between dates",
  *   "description": "some descriptions related to this query"
  * }
@@ -54,6 +55,7 @@ internal data class SavedVisualization(
     val name: String?,
     val description: String?,
     val query: String?,
+    val type: String?,
     val selectedDateRange: SelectedDateRange?,
     val selectedFields: SelectedFields?
 ) : BaseObjectData {
@@ -63,6 +65,7 @@ internal data class SavedVisualization(
         private const val NAME_TAG = "name"
         private const val DESCRIPTION_TAG = "description"
         private const val QUERY_TAG = "query"
+        private const val TYPE_TAG = "type"
         private const val SELECTED_DATE_RANGE_TAG = "selected_date_range"
         private const val SELECTED_FIELDS_TAG = "selected_fields"
 
@@ -85,6 +88,7 @@ internal data class SavedVisualization(
             var name: String? = null
             var description: String? = null
             var query: String? = null
+            var type: String? = null
             var selectedDateRange: SelectedDateRange? = null
             var selectedFields: SelectedFields? = null
             XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.currentToken(), parser)
@@ -95,6 +99,7 @@ internal data class SavedVisualization(
                     NAME_TAG -> name = parser.text()
                     DESCRIPTION_TAG -> description = parser.text()
                     QUERY_TAG -> query = parser.text()
+                    TYPE_TAG -> type = parser.text()
                     SELECTED_DATE_RANGE_TAG -> selectedDateRange = SelectedDateRange.parse(parser)
                     SELECTED_FIELDS_TAG -> selectedFields = SelectedFields.parse(parser)
                     else -> {
@@ -103,7 +108,7 @@ internal data class SavedVisualization(
                     }
                 }
             }
-            return SavedVisualization(name, description, query, selectedDateRange, selectedFields)
+            return SavedVisualization(name, description, query, type, selectedDateRange, selectedFields)
         }
     }
 
@@ -124,6 +129,7 @@ internal data class SavedVisualization(
         name = input.readString(),
         description = input.readString(),
         query = input.readString(),
+        type = input.readString(),
         selectedDateRange = input.readOptionalWriteable(SelectedDateRange.reader),
         selectedFields = input.readOptionalWriteable(SelectedFields.reader)
     )
@@ -135,6 +141,7 @@ internal data class SavedVisualization(
         output.writeString(name)
         output.writeString(description)
         output.writeString(query)
+        output.writeString(type)
         output.writeOptionalWriteable(selectedDateRange)
         output.writeOptionalWriteable(selectedFields)
     }
@@ -148,6 +155,7 @@ internal data class SavedVisualization(
             .fieldIfNotNull(NAME_TAG, name)
             .fieldIfNotNull(DESCRIPTION_TAG, description)
             .fieldIfNotNull(QUERY_TAG, query)
+            .fieldIfNotNull(TYPE_TAG, type)
             .fieldIfNotNull(SELECTED_DATE_RANGE_TAG, selectedDateRange)
             .fieldIfNotNull(SELECTED_FIELDS_TAG, selectedFields)
         return builder.endObject()
