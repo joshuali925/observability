@@ -53,7 +53,7 @@ internal class GetObservabilityObjectAction @Inject constructor(
     ::GetObservabilityObjectRequest
 ) {
     companion object {
-        private const val NAME = "cluster:admin/opendistro/notebooks/get"
+        private const val NAME = "cluster:admin/opensearch/observability/get"
         internal val ACTION_TYPE = ActionType(NAME, ::GetObservabilityObjectResponse)
     }
 

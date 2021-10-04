@@ -53,7 +53,7 @@ internal class UpdateObservabilityObjectAction @Inject constructor(
     ::UpdateObservabilityObjectRequest
 ) {
     companion object {
-        private const val NAME = "cluster:admin/opendistro/notebooks/update"
+        private const val NAME = "cluster:admin/opensearch/observability/update"
         internal val ACTION_TYPE = ActionType(NAME, ::UpdateObservabilityObjectResponse)
     }
 

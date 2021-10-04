@@ -53,7 +53,7 @@ internal class DeleteObservabilityObjectAction @Inject constructor(
     ::DeleteObservabilityObjectRequest
 ) {
     companion object {
-        private const val NAME = "cluster:admin/opendistro/notebooks/delete"
+        private const val NAME = "cluster:admin/opensearch/observability/delete"
         internal val ACTION_TYPE = ActionType(NAME, ::DeleteObservabilityObjectResponse)
     }
 

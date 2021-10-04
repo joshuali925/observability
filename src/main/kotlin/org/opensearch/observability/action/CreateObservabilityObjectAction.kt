@@ -37,7 +37,7 @@ internal class CreateObservabilityObjectAction @Inject constructor(
     ::CreateObservabilityObjectRequest
 ) {
     companion object {
-        private const val NAME = "cluster:admin/opendistro/notebooks/create"
+        private const val NAME = "cluster:admin/opensearch/observability/create"
         internal val ACTION_TYPE = ActionType(NAME, ::CreateObservabilityObjectResponse)
     }
 
