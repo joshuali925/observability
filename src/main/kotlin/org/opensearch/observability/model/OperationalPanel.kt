@@ -77,10 +77,6 @@ import org.opensearch.observability.util.logger
  *     "queryFilter": {
  *       "query": "| where Carrier='OpenSearch-Air'",
  *       "language": "ppl"
- *     },
- *     "refreshConfig": {
- *       "pause": true,
- *       "value": 15
  *     }
  *   }
  * }
@@ -94,7 +90,6 @@ internal data class OperationalPanel(
     val visualizations: List<Visualization>?,
     val timeRange: TimeRange?,
     val queryFilter: QueryFilter?,
-    val refreshConfig: RefreshConfig?
 ) : BaseObjectData {
 
     internal companion object {
@@ -105,7 +100,6 @@ internal data class OperationalPanel(
         private const val VISUALIZATIONS_TAG = "visualizations"
         private const val TIME_RANGE_TAG = "timeRange"
         private const val QUERY_FILTER_TAG = "queryFilter"
-        private const val REFRESH_CONFIG_TAG = "refreshConfig"
 
         /**
          * reader to create instance of class from writable.
@@ -143,7 +137,6 @@ internal data class OperationalPanel(
             var visualizations: List<Visualization>? = null
             var timeRange: TimeRange? = null
             var queryFilter: QueryFilter? = null
-            var refreshConfig: RefreshConfig? = null
             XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.currentToken(), parser)
             while (XContentParser.Token.END_OBJECT != parser.nextToken()) {
                 val fieldName = parser.currentName()
@@ -155,7 +148,6 @@ internal data class OperationalPanel(
                     VISUALIZATIONS_TAG -> visualizations = parseItemList(parser)
                     TIME_RANGE_TAG -> timeRange = TimeRange.parse(parser)
                     QUERY_FILTER_TAG -> queryFilter = QueryFilter.parse(parser)
-                    REFRESH_CONFIG_TAG -> refreshConfig = RefreshConfig.parse(parser)
                     else -> {
                         parser.skipChildren()
                         log.info("$LOG_PREFIX:OperationalPanel Skipping Unknown field $fieldName")
@@ -168,8 +160,7 @@ internal data class OperationalPanel(
                 dateModified,
                 visualizations,
                 timeRange,
-                queryFilter,
-                refreshConfig
+                queryFilter
             )
         }
     }
@@ -194,7 +185,6 @@ internal data class OperationalPanel(
         visualizations = input.readList(Visualization.reader),
         timeRange = input.readOptionalWriteable(TimeRange.reader),
         queryFilter = input.readOptionalWriteable(QueryFilter.reader),
-        refreshConfig = input.readOptionalWriteable(RefreshConfig.reader)
     )
 
     /**
@@ -207,7 +197,6 @@ internal data class OperationalPanel(
         output.writeCollection(visualizations)
         output.writeOptionalWriteable(timeRange)
         output.writeOptionalWriteable(queryFilter)
-        output.writeOptionalWriteable(refreshConfig)
     }
 
     /**
@@ -227,7 +216,6 @@ internal data class OperationalPanel(
         }
         builder.fieldIfNotNull(TIME_RANGE_TAG, timeRange)
             .fieldIfNotNull(QUERY_FILTER_TAG, queryFilter)
-            .fieldIfNotNull(REFRESH_CONFIG_TAG, refreshConfig)
         return builder.endObject()
     }
 
@@ -495,78 +483,6 @@ internal data class OperationalPanel(
             builder.startObject()
                 .field(QUERY_TAG, query)
                 .field(LANGUAGE_TAG, language)
-            builder.endObject()
-            return builder
-        }
-    }
-
-    /**
-     * OperationalPanel RefreshConfig data class
-     */
-    internal data class RefreshConfig(
-        val pause: Boolean,
-        val value: Int
-    ) : BaseModel {
-        internal companion object {
-            private const val PAUSE_TAG = "pause"
-            private const val VALUE_TAG = "value"
-
-            /**
-             * reader to create instance of class from writable.
-             */
-            val reader = Writeable.Reader { RefreshConfig(it) }
-
-            /**
-             * Parser to parse xContent
-             */
-            val xParser = XParser { parse(it) }
-
-            /**
-             * Parse the data from parser and create Trigger object
-             * @param parser data referenced at parser
-             * @return created Trigger object
-             */
-            fun parse(parser: XContentParser): RefreshConfig {
-                var pause: Boolean? = null
-                var value: Int? = null
-                XContentParserUtils.ensureExpectedToken(
-                    XContentParser.Token.START_OBJECT,
-                    parser.currentToken(),
-                    parser
-                )
-                while (XContentParser.Token.END_OBJECT != parser.nextToken()) {
-                    val fieldName = parser.currentName()
-                    parser.nextToken()
-                    when (fieldName) {
-                        PAUSE_TAG -> pause = parser.booleanValue()
-                        VALUE_TAG -> value = parser.intValue()
-                        else -> log.info("$LOG_PREFIX: Trigger Skipping Unknown field $fieldName")
-                    }
-                }
-                pause ?: throw IllegalArgumentException("$PAUSE_TAG field absent")
-                value ?: throw IllegalArgumentException("$VALUE_TAG field absent")
-                return RefreshConfig(pause, value)
-            }
-        }
-
-        constructor(input: StreamInput) : this(
-            pause = input.readBoolean(),
-            value = input.readInt()
-        )
-
-        override fun writeTo(output: StreamOutput) {
-            output.writeBoolean(pause)
-            output.writeInt(value)
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
-            builder!!
-            builder.startObject()
-                .field(PAUSE_TAG, pause)
-                .field(VALUE_TAG, value)
             builder.endObject()
             return builder
         }
