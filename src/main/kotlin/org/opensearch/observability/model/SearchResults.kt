@@ -179,7 +179,7 @@ internal abstract class SearchResults<ItemClass : BaseModel> : BaseModel {
      * @param parser data referenced at parser
      * @return created item
      */
-    abstract fun parseItem(parser: XContentParser): ItemClass
+    abstract fun parseItem(parser: XContentParser, useId: String? = null): ItemClass
 
     /**
      * Constructor used in transport action communication.

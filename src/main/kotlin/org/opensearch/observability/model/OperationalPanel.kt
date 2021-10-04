@@ -44,7 +44,7 @@ import org.opensearch.observability.util.logger
  *  * <pre> JSON format
  * {@code
  * {
- *   "OperationalPanel": {
+ *   "operationalPanel": {
  *     "name": "Demo Panel 1",
  *     "dateCreated": "2021-07-19T21:01:14.871Z",
  *     "dateModified": "2021-07-19T21:01:14.871Z",
@@ -56,7 +56,7 @@ import org.opensearch.observability.util.logger
  *         "y": 0,
  *         "w": 10,
  *         "h": 10,
- *         "query": "source=opensearch_dashboards_sample_data_flights | fields Carrier,FlightDelayMin | stats sum(FlightDelayMin) as delays by Carrier",
+ *         "query": "source=index | fields Carrier,FlightDelayMin | stats sum(FlightDelayMin) as delays by Carrier",
  *         "type": "bar"
  *       },
  *       {
@@ -66,7 +66,7 @@ import org.opensearch.observability.util.logger
  *         "y": 20,
  *         "w": 30,
  *         "h": 20,
- *         "query": "source=opensearch_dashboards_sample_data_flights | fields Carrier,Origin | stats count() by Origin",
+ *         "query": "source=index | fields Carrier,Origin | stats count() by Origin",
  *         "type": "bar"
  *       }
  *     ],

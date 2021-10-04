@@ -13,6 +13,7 @@ import org.opensearch.commons.utils.stringList
 import org.opensearch.observability.model.ObservabilityObjectDataProperties.getReaderForObjectType
 import org.opensearch.observability.model.RestTag.ACCESS_LIST_FIELD
 import org.opensearch.observability.model.RestTag.CREATED_TIME_FIELD
+import org.opensearch.observability.model.RestTag.OBJECT_ID_FIELD
 import org.opensearch.observability.model.RestTag.TENANT_FIELD
 import org.opensearch.observability.model.RestTag.UPDATED_TIME_FIELD
 import org.opensearch.observability.security.UserAccessManager
@@ -23,6 +24,7 @@ import java.time.Instant
  * Data class representing ObservabilityObject.
  */
 data class ObservabilityObjectDoc(
+    val objectId: String,
     val updatedTime: Instant,
     val createdTime: Instant,
     val tenant: String,
@@ -46,7 +48,8 @@ data class ObservabilityObjectDoc(
          */
         @JvmStatic
         @Throws(IOException::class)
-        fun parse(parser: XContentParser): ObservabilityObjectDoc {
+        fun parse(parser: XContentParser, useId: String? = null): ObservabilityObjectDoc {
+            var objectId: String? = useId
             var updatedTime: Instant? = null
             var createdTime: Instant? = null
             var tenant: String? = null
@@ -63,6 +66,7 @@ data class ObservabilityObjectDoc(
                 val fieldName = parser.currentName()
                 parser.nextToken()
                 when (fieldName) {
+                    OBJECT_ID_FIELD -> if (objectId == null) objectId = parser.text()
                     UPDATED_TIME_FIELD -> updatedTime = Instant.ofEpochMilli(parser.longValue())
                     CREATED_TIME_FIELD -> createdTime = Instant.ofEpochMilli(parser.longValue())
                     TENANT_FIELD -> tenant = parser.text()
@@ -80,12 +84,13 @@ data class ObservabilityObjectDoc(
                     }
                 }
             }
+            objectId ?: throw IllegalArgumentException("$OBJECT_ID_FIELD field absent")
             updatedTime ?: throw IllegalArgumentException("$UPDATED_TIME_FIELD field absent")
             createdTime ?: throw IllegalArgumentException("$CREATED_TIME_FIELD field absent")
             tenant = tenant ?: UserAccessManager.DEFAULT_TENANT
             type ?: throw IllegalArgumentException("Object data field absent")
             objectData ?: throw IllegalArgumentException("Object data field absent")
-            return ObservabilityObjectDoc(updatedTime, createdTime, tenant, access, type, objectData)
+            return ObservabilityObjectDoc(objectId, updatedTime, createdTime, tenant, access, type, objectData)
         }
     }
 
@@ -103,6 +108,7 @@ data class ObservabilityObjectDoc(
      * @param input StreamInput stream to deserialize data from.
      */
     constructor(input: StreamInput) : this(
+        objectId = input.readString(),
         updatedTime = input.readInstant(),
         createdTime = input.readInstant(),
         tenant = input.readString(),
@@ -115,6 +121,7 @@ data class ObservabilityObjectDoc(
      * {@inheritDoc}
      */
     override fun writeTo(output: StreamOutput) {
+        output.writeString(objectId)
         output.writeInstant(updatedTime)
         output.writeInstant(createdTime)
         output.writeString(tenant)
@@ -128,7 +135,9 @@ data class ObservabilityObjectDoc(
      */
     override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
         builder!!
+        // TODO do not write objectId when creating doc
         return builder.startObject()
+            .field(OBJECT_ID_FIELD, objectId)
             .field(UPDATED_TIME_FIELD, updatedTime.toEpochMilli())
             .field(CREATED_TIME_FIELD, createdTime.toEpochMilli())
             .field(TENANT_FIELD, tenant)

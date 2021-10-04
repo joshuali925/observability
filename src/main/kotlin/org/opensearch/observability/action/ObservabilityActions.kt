@@ -62,6 +62,7 @@ internal object ObservabilityActions {
         UserAccessManager.validateUser(user)
         val currentTime = Instant.now()
         val objectDoc = ObservabilityObjectDoc(
+            "ignore",
             currentTime,
             currentTime,
             UserAccessManager.getUserTenant(user),
@@ -100,6 +101,7 @@ internal object ObservabilityActions {
         }
         val currentTime = Instant.now()
         val objectDoc = ObservabilityObjectDoc(
+            request.objectId,
             currentTime,
             currentDoc.createdTime,
             UserAccessManager.getUserTenant(user),
@@ -146,6 +148,7 @@ internal object ObservabilityActions {
             throw OpenSearchStatusException("Permission denied for ObservabilityObject $objectId", RestStatus.FORBIDDEN)
         }
         val docInfo = ObservabilityObjectDoc(
+            objectId,
             currentDoc.updatedTime,
             currentDoc.createdTime,
             currentDoc.tenant,
@@ -153,6 +156,7 @@ internal object ObservabilityActions {
             currentDoc.type,
             currentDoc.objectData
         )
+        println("debug info by id: $objectId")
         return GetObservabilityObjectResponse(ObservabilityObjectSearchResult(docInfo))
     }
 
@@ -182,8 +186,11 @@ internal object ObservabilityActions {
                 )
             }
         }
+        println("debug info by id list:")
         val configSearchResult = objectDocs.map {
+            println(it.id)
             ObservabilityObjectDoc(
+                it.id!!,
                 it.observabilityObjectDoc.updatedTime,
                 it.observabilityObjectDoc.createdTime,
                 it.observabilityObjectDoc.tenant,
@@ -227,8 +234,10 @@ internal object ObservabilityActions {
     }
 
     /**
-     * Delete ObservabilityObject
-     * @param request [DeleteObservabilityObjectRequest] object
+     * Delete by object id
+     *
+     * @param objectId
+     * @param user
      * @return [DeleteObservabilityObjectResponse]
      */
     private fun delete(objectId: String, user: User?): DeleteObservabilityObjectResponse {

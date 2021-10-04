@@ -71,7 +71,7 @@ internal class ObservabilityObjectSearchResult : SearchResults<ObservabilityObje
     /**
      * {@inheritDoc}
      */
-    override fun parseItem(parser: XContentParser): ObservabilityObjectDoc {
-        return ObservabilityObjectDoc.parse(parser)
+    override fun parseItem(parser: XContentParser, useId: String?): ObservabilityObjectDoc {
+        return ObservabilityObjectDoc.parse(parser, useId)
     }
 }

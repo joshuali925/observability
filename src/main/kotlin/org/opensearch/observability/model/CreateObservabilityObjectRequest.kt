@@ -76,9 +76,7 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
                     }
                 }
             }
-//            if (configId != null) {
-//                validateId(configId)
-//            }
+            // TODO validate object ID if provided
             type ?: throw IllegalArgumentException("Object data field absent")
             baseObjectData ?: throw IllegalArgumentException("Object data field absent")
             return CreateObservabilityObjectRequest(baseObjectData, type, objectId)

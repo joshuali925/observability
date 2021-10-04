@@ -83,7 +83,7 @@ internal object ObservabilityIndex {
                 searchHit.sourceAsString
             )
             parser.nextToken()
-            return ObservabilityObjectDoc.parse(parser)
+            return ObservabilityObjectDoc.parse(parser, searchHit.id)
         }
     }
 
@@ -204,7 +204,7 @@ internal object ObservabilityIndex {
                 response.sourceAsString
             )
             parser.nextToken()
-            val doc = ObservabilityObjectDoc.parse(parser)
+            val doc = ObservabilityObjectDoc.parse(parser, id)
             ObservabilityObjectDocInfo(id, response.version, response.seqNo, response.primaryTerm, doc)
         }
     }
