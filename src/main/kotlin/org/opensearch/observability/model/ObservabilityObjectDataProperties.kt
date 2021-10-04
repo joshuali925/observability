@@ -30,6 +30,10 @@ internal object ObservabilityObjectDataProperties {
         Pair(
             ObservabilityObjectType.SAVED_VISUALIZATION,
             ObjectProperty(SavedVisualization.reader, SavedVisualization.xParser)
+        ),
+        Pair(
+            ObservabilityObjectType.OPERATIONAL_PANEL,
+            ObjectProperty(OperationalPanel.reader, OperationalPanel.xParser)
         )
     )
 
