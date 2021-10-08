@@ -57,6 +57,7 @@ import org.opensearch.observability.util.logger
  *         "w": 10,
  *         "h": 10,
  *         "query": "source=index | fields Carrier,FlightDelayMin | stats sum(FlightDelayMin) as delays by Carrier",
+ *         "timeField": "timestamp",
  *         "type": "bar"
  *       },
  *       {
@@ -67,6 +68,7 @@ import org.opensearch.observability.util.logger
  *         "w": 30,
  *         "h": 20,
  *         "query": "source=index | fields Carrier,Origin | stats count() by Origin",
+ *         "timeField": "utc_time",
  *         "type": "bar"
  *       }
  *     ],
@@ -230,6 +232,7 @@ internal data class OperationalPanel(
         val w: Int,
         val h: Int,
         val query: String,
+        val timeField: String,
         val type: String
     ) : BaseModel {
         internal companion object {
@@ -240,6 +243,7 @@ internal data class OperationalPanel(
             private const val W_TAG = "w"
             private const val H_TAG = "h"
             private const val QUERY_TAG = "query"
+            private const val TIME_FIELD_TAG = "timeField"
             private const val TYPE_TAG = "type"
 
             /**
@@ -265,6 +269,7 @@ internal data class OperationalPanel(
                 var w: Int? = null
                 var h: Int? = null
                 var query: String? = null
+                var timeField: String? = null
                 var type: String? = null
                 XContentParserUtils.ensureExpectedToken(
                     XContentParser.Token.START_OBJECT,
@@ -282,6 +287,7 @@ internal data class OperationalPanel(
                         W_TAG -> w = parser.intValue()
                         H_TAG -> h = parser.intValue()
                         QUERY_TAG -> query = parser.text()
+                        TIME_FIELD_TAG -> timeField = parser.text()
                         TYPE_TAG -> type = parser.text()
                         else -> {
                             parser.skipChildren()
@@ -296,8 +302,9 @@ internal data class OperationalPanel(
                 w ?: throw IllegalArgumentException("$W_TAG field absent")
                 h ?: throw IllegalArgumentException("$H_TAG field absent")
                 query ?: throw IllegalArgumentException("$QUERY_TAG field absent")
+                timeField ?: throw IllegalArgumentException("$TIME_FIELD_TAG field absent")
                 type ?: throw IllegalArgumentException("$TYPE_TAG field absent")
-                return Visualization(id, title, x, y, w, h, query, type)
+                return Visualization(id, title, x, y, w, h, query, timeField, type)
             }
         }
 
@@ -309,6 +316,7 @@ internal data class OperationalPanel(
             w = streamInput.readInt(),
             h = streamInput.readInt(),
             query = streamInput.readString(),
+            timeField = streamInput.readString(),
             type = streamInput.readString()
         )
 
@@ -320,6 +328,7 @@ internal data class OperationalPanel(
             streamOutput.writeInt(w)
             streamOutput.writeInt(h)
             streamOutput.writeString(query)
+            streamOutput.writeString(timeField)
             streamOutput.writeString(type)
         }
 
@@ -336,6 +345,7 @@ internal data class OperationalPanel(
                 .field(W_TAG, w)
                 .field(H_TAG, h)
                 .field(QUERY_TAG, query)
+                .field(TIME_FIELD_TAG, timeField)
                 .field(TYPE_TAG, type)
             return builder.endObject()
         }
