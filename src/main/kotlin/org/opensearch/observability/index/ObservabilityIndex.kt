@@ -28,8 +28,10 @@
 package org.opensearch.observability.index
 
 import org.opensearch.ResourceAlreadyExistsException
+import org.opensearch.ResourceNotFoundException
 import org.opensearch.action.DocWriteResponse
 import org.opensearch.action.admin.indices.create.CreateIndexRequest
+import org.opensearch.action.admin.indices.delete.DeleteIndexRequest
 import org.opensearch.action.bulk.BulkRequest
 import org.opensearch.action.delete.DeleteRequest
 import org.opensearch.action.get.GetRequest
@@ -45,6 +47,8 @@ import org.opensearch.common.xcontent.LoggingDeprecationHandler
 import org.opensearch.common.xcontent.NamedXContentRegistry
 import org.opensearch.common.xcontent.XContentType
 import org.opensearch.index.query.QueryBuilders
+import org.opensearch.index.reindex.ReindexAction
+import org.opensearch.index.reindex.ReindexRequestBuilder
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.model.GetObservabilityObjectRequest
 import org.opensearch.observability.model.ObservabilityObjectDoc
@@ -67,7 +71,8 @@ import java.util.concurrent.TimeUnit
 @Suppress("TooManyFunctions")
 internal object ObservabilityIndex {
     private val log by logger(ObservabilityIndex::class.java)
-    const val INDEX_NAME = ".opensearch-notebooks"
+    private const val INDEX_NAME = ".opensearch-observability"
+    private const val NOTEBOOKS_INDEX_NAME = ".opensearch-notebooks"
     private const val OBSERVABILITY_MAPPING_FILE_NAME = "observability-mapping.yml"
     private const val OBSERVABILITY_SETTINGS_FILE_NAME = "observability-settings.yml"
     private const val MAPPING_TYPE = "_doc"
@@ -102,7 +107,6 @@ internal object ObservabilityIndex {
      */
     @Suppress("TooGenericExceptionCaught")
     private fun createIndex() {
-        // TODO check if .opensearch-notebooks index exists and reindex
         if (!isIndexExists()) {
             val classLoader = ObservabilityIndex::class.java.classLoader
             val indexMappingSource = classLoader.getResource(OBSERVABILITY_MAPPING_FILE_NAME)?.readText()!!
@@ -124,6 +128,48 @@ internal object ObservabilityIndex {
                 }
             }
         }
+        if (isIndexExists(NOTEBOOKS_INDEX_NAME)) {
+            try {
+//            val reindexRequest = ReindexRequest()
+//            reindexRequest.setSourceIndices(NOTEBOOKS_INDEX_NAME)
+//            reindexRequest.setDestIndex(INDEX_NAME)
+//            val bulkResponse: BulkByScrollResponse = client.reindex(request, RequestOptions.DEFAULT)
+                val reindexResponse = ReindexRequestBuilder(client, ReindexAction.INSTANCE)
+                    .source(NOTEBOOKS_INDEX_NAME)
+                    .destination(INDEX_NAME)
+                    .get()
+//                println(reindexResponse)
+//                println(reindexResponse.status)
+
+                val deleteIndexRequest = DeleteIndexRequest(NOTEBOOKS_INDEX_NAME)
+                val actionFuture = client.admin().indices().delete(deleteIndexRequest)
+                val deleteIndexResponse = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
+                if (deleteIndexResponse.isAcknowledged) {
+                    log.info("$LOG_PREFIX:Index $INDEX_NAME deletion Acknowledged")
+                } else {
+                    throw IllegalStateException("$LOG_PREFIX:Index $INDEX_NAME deletion not Acknowledged")
+                }
+
+//            val deleteIndexResponse =
+//                DeleteIndexRequestBuilder(client, DeleteIndexAction.INSTANCE, NOTEBOOKS_INDEX_NAME).get()
+//                println(deleteIndexResponse.toString())
+//                println(deleteIndexResponse.isAcknowledged)
+            } catch (exception: Exception) {
+                if (exception !is ResourceNotFoundException && exception.cause !is ResourceNotFoundException) {
+                    throw exception
+                }
+            }
+        }
+    }
+
+    /**
+     * Check if the index is created and available.
+     * @param index
+     * @return true if index is available, false otherwise
+     */
+    private fun isIndexExists(index: String): Boolean {
+        val clusterState = clusterService.state()
+        return clusterState.routingTable.hasIndex(index)
     }
 
     /**
@@ -131,8 +177,7 @@ internal object ObservabilityIndex {
      * @return true if index is available, false otherwise
      */
     private fun isIndexExists(): Boolean {
-        val clusterState = clusterService.state()
-        return clusterState.routingTable.hasIndex(INDEX_NAME)
+        return isIndexExists(INDEX_NAME)
     }
 
     /**
