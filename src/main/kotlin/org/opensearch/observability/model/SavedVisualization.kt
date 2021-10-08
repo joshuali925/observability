@@ -22,7 +22,6 @@ import org.opensearch.common.xcontent.XContentParserUtils
 import org.opensearch.observability.ObservabilityPlugin.Companion.LOG_PREFIX
 import org.opensearch.observability.util.fieldIfNotNull
 import org.opensearch.observability.util.logger
-import org.opensearch.observability.util.stringList
 
 /**
  * Saved query main data class.
@@ -35,14 +34,16 @@ import org.opensearch.observability.util.stringList
  *     "end": "now",
  *     "text": "utc_time > timestamp('2021-07-01 00:00:00') and utc_time < timestamp('2021-07-02 00:00:00')"
  *   },
+ *   "selected_timestamp": {
+ *       "name": "utc_time",
+ *       "type": "timestamp"
+ *   },
  *   "selected_fields": {
- *     "text": "| fields clientip, bytes, memory, host",
- *     "tokens": [
- *       "clientip",
- *       "bytes",
- *       "memory",
- *       "host"
- *     ]
+ *       "text": "| fields clientip, bytes, memory, host",
+ *       "tokens": [
+ *           {"name":"bytes","type":"long"},
+ *           {"name":"clientip","type":"ip"}
+ *       ]
  *   },
  *   "type": "bar",
  *   "name": "Logs between dates",
@@ -56,8 +57,9 @@ internal data class SavedVisualization(
     val description: String?,
     val query: String?,
     val type: String?,
-    val selectedDateRange: SelectedDateRange?,
-    val selectedFields: SelectedFields?
+    val selectedDateRange: SavedQuery.SelectedDateRange?,
+    val selectedTimestamp: SavedQuery.Token?,
+    val selectedFields: SavedQuery.SelectedFields?
 ) : BaseObjectData {
 
     internal companion object {
@@ -67,6 +69,7 @@ internal data class SavedVisualization(
         private const val QUERY_TAG = "query"
         private const val TYPE_TAG = "type"
         private const val SELECTED_DATE_RANGE_TAG = "selected_date_range"
+        private const val SELECTED_TIMESTAMP_TAG = "selected_timestamp"
         private const val SELECTED_FIELDS_TAG = "selected_fields"
 
         /**
@@ -89,8 +92,9 @@ internal data class SavedVisualization(
             var description: String? = null
             var query: String? = null
             var type: String? = null
-            var selectedDateRange: SelectedDateRange? = null
-            var selectedFields: SelectedFields? = null
+            var selectedDateRange: SavedQuery.SelectedDateRange? = null
+            var selectedTimestamp: SavedQuery.Token? = null
+            var selectedFields: SavedQuery.SelectedFields? = null
             XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.currentToken(), parser)
             while (XContentParser.Token.END_OBJECT != parser.nextToken()) {
                 val fieldName = parser.currentName()
@@ -100,15 +104,24 @@ internal data class SavedVisualization(
                     DESCRIPTION_TAG -> description = parser.text()
                     QUERY_TAG -> query = parser.text()
                     TYPE_TAG -> type = parser.text()
-                    SELECTED_DATE_RANGE_TAG -> selectedDateRange = SelectedDateRange.parse(parser)
-                    SELECTED_FIELDS_TAG -> selectedFields = SelectedFields.parse(parser)
+                    SELECTED_DATE_RANGE_TAG -> selectedDateRange = SavedQuery.SelectedDateRange.parse(parser)
+                    SELECTED_TIMESTAMP_TAG -> selectedTimestamp = SavedQuery.Token.parse(parser)
+                    SELECTED_FIELDS_TAG -> selectedFields = SavedQuery.SelectedFields.parse(parser)
                     else -> {
                         parser.skipChildren()
                         log.info("$LOG_PREFIX:SavedVisualization Skipping Unknown field $fieldName")
                     }
                 }
             }
-            return SavedVisualization(name, description, query, type, selectedDateRange, selectedFields)
+            return SavedVisualization(
+                name,
+                description,
+                query,
+                type,
+                selectedDateRange,
+                selectedTimestamp,
+                selectedFields
+            )
         }
     }
 
@@ -130,8 +143,9 @@ internal data class SavedVisualization(
         description = input.readString(),
         query = input.readString(),
         type = input.readString(),
-        selectedDateRange = input.readOptionalWriteable(SelectedDateRange.reader),
-        selectedFields = input.readOptionalWriteable(SelectedFields.reader)
+        selectedDateRange = input.readOptionalWriteable(SavedQuery.SelectedDateRange.reader),
+        selectedTimestamp = input.readOptionalWriteable(SavedQuery.Token.reader),
+        selectedFields = input.readOptionalWriteable(SavedQuery.SelectedFields.reader)
     )
 
     /**
@@ -143,6 +157,7 @@ internal data class SavedVisualization(
         output.writeString(query)
         output.writeString(type)
         output.writeOptionalWriteable(selectedDateRange)
+        output.writeOptionalWriteable(selectedTimestamp)
         output.writeOptionalWriteable(selectedFields)
     }
 
@@ -157,167 +172,8 @@ internal data class SavedVisualization(
             .fieldIfNotNull(QUERY_TAG, query)
             .fieldIfNotNull(TYPE_TAG, type)
             .fieldIfNotNull(SELECTED_DATE_RANGE_TAG, selectedDateRange)
+            .fieldIfNotNull(SELECTED_TIMESTAMP_TAG, selectedTimestamp)
             .fieldIfNotNull(SELECTED_FIELDS_TAG, selectedFields)
         return builder.endObject()
-    }
-
-    internal data class SelectedDateRange(
-        val start: String,
-        val end: String,
-        val text: String
-    ) : BaseModel {
-        internal companion object {
-            private const val START_TAG = "start"
-            private const val END_TAG = "end"
-            private const val TEXT_TAG = "text"
-
-            /**
-             * reader to create instance of class from writable.
-             */
-            val reader = Writeable.Reader { SelectedDateRange(it) }
-
-            /**
-             * Parser to parse xContent
-             */
-            val xParser = XParser { parse(it) }
-
-            /**
-             * Parse the data from parser and create Trigger object
-             * @param parser data referenced at parser
-             * @return created Trigger object
-             */
-            fun parse(parser: XContentParser): SelectedDateRange {
-                var start: String? = null
-                var end: String? = null
-                var text: String? = null
-                XContentParserUtils.ensureExpectedToken(
-                    XContentParser.Token.START_OBJECT,
-                    parser.currentToken(),
-                    parser
-                )
-                while (XContentParser.Token.END_OBJECT != parser.nextToken()) {
-                    val fieldName = parser.currentName()
-                    parser.nextToken()
-                    when (fieldName) {
-                        START_TAG -> start = parser.text()
-                        END_TAG -> end = parser.text()
-                        TEXT_TAG -> text = parser.text()
-                        else -> log.info("$LOG_PREFIX: Trigger Skipping Unknown field $fieldName")
-                    }
-                }
-                start ?: throw IllegalArgumentException("$START_TAG field absent")
-                end ?: throw IllegalArgumentException("$END_TAG field absent")
-                text ?: throw IllegalArgumentException("$TEXT_TAG field absent")
-                return SelectedDateRange(start, end, text)
-            }
-        }
-
-        /**
-         * Constructor used in transport action communication.
-         * @param input StreamInput stream to deserialize data from.
-         */
-        constructor(input: StreamInput) : this(
-            start = input.readString(),
-            end = input.readString(),
-            text = input.readString()
-        )
-
-        /**
-         * {@inheritDoc}
-         */
-        override fun writeTo(output: StreamOutput) {
-            output.writeString(start)
-            output.writeString(end)
-            output.writeString(text)
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
-            builder!!
-            builder.startObject()
-                .field(START_TAG, start)
-                .field(END_TAG, end)
-                .field(TEXT_TAG, text)
-            builder.endObject()
-            return builder
-        }
-    }
-
-    internal data class SelectedFields(
-        val text: String?,
-        val tokens: List<String>?
-    ) : BaseModel {
-        internal companion object {
-            private const val TEXT_TAG = "text"
-            private const val TOKENS_TAG = "tokens"
-
-            /**
-             * reader to create instance of class from writable.
-             */
-            val reader = Writeable.Reader { SelectedFields(it) }
-
-            /**
-             * Parser to parse xContent
-             */
-            val xParser = XParser { parse(it) }
-
-            /**
-             * Parse the data from parser and create Trigger object
-             * @param parser data referenced at parser
-             * @return created Trigger object
-             */
-            fun parse(parser: XContentParser): SelectedFields {
-                var text: String? = null
-                var tokens: List<String>? = null
-                XContentParserUtils.ensureExpectedToken(
-                    XContentParser.Token.START_OBJECT,
-                    parser.currentToken(),
-                    parser
-                )
-                while (XContentParser.Token.END_OBJECT != parser.nextToken()) {
-                    val fieldName = parser.currentName()
-                    parser.nextToken()
-                    when (fieldName) {
-                        TEXT_TAG -> text = parser.text()
-                        TOKENS_TAG -> tokens = parser.stringList()
-                        else -> log.info("$LOG_PREFIX: Trigger Skipping Unknown field $fieldName")
-                    }
-                }
-                text ?: throw IllegalArgumentException("$TEXT_TAG field absent")
-                tokens ?: throw IllegalArgumentException("$TOKENS_TAG field absent")
-                return SelectedFields(text, tokens)
-            }
-        }
-
-        /**
-         * Constructor used in transport action communication.
-         * @param input StreamInput stream to deserialize data from.
-         */
-        constructor(input: StreamInput) : this(
-            text = input.readString(),
-            tokens = input.readStringList()
-        )
-
-        /**
-         * {@inheritDoc}
-         */
-        override fun writeTo(output: StreamOutput) {
-            output.writeString(text)
-            output.writeStringCollection(tokens)
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
-            builder!!
-            builder.startObject()
-                .field(TEXT_TAG, text)
-                .field(TOKENS_TAG, tokens)
-            builder.endObject()
-            return builder
-        }
     }
 }
