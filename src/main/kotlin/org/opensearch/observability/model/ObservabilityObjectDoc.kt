@@ -66,7 +66,7 @@ data class ObservabilityObjectDoc(
                 val fieldName = parser.currentName()
                 parser.nextToken()
                 when (fieldName) {
-                    OBJECT_ID_FIELD -> if (objectId == null) objectId = parser.text()
+                    OBJECT_ID_FIELD -> objectId = parser.text()
                     UPDATED_TIME_FIELD -> updatedTime = Instant.ofEpochMilli(parser.longValue())
                     CREATED_TIME_FIELD -> createdTime = Instant.ofEpochMilli(parser.longValue())
                     TENANT_FIELD -> tenant = parser.text()
@@ -135,14 +135,16 @@ data class ObservabilityObjectDoc(
      */
     override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
         builder!!
-        // TODO do not write objectId when creating doc
-        return builder.startObject()
-            .field(OBJECT_ID_FIELD, objectId)
-            .field(UPDATED_TIME_FIELD, updatedTime.toEpochMilli())
+        builder.startObject()
+        if (params?.paramAsBoolean(OBJECT_ID_FIELD, false) == true) {
+            builder.field(OBJECT_ID_FIELD, objectId)
+        }
+        builder.field(UPDATED_TIME_FIELD, updatedTime.toEpochMilli())
             .field(CREATED_TIME_FIELD, createdTime.toEpochMilli())
             .field(TENANT_FIELD, tenant)
             .field(ACCESS_LIST_FIELD, access)
             .field(type.tag, objectData)
             .endObject()
+        return builder
     }
 }

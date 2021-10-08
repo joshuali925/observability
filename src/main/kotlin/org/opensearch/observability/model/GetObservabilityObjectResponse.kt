@@ -17,6 +17,7 @@ import org.opensearch.common.io.stream.Writeable
 import org.opensearch.common.xcontent.ToXContent
 import org.opensearch.common.xcontent.XContentBuilder
 import org.opensearch.common.xcontent.XContentParser
+import org.opensearch.common.xcontent.XContentParserUtils
 import java.io.IOException
 
 /**
@@ -71,6 +72,7 @@ internal class GetObservabilityObjectResponse : BaseResponse {
      * {@inheritDoc}
      */
     override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
-        return searchResult.toXContent(builder, params)
+        val xContentParams = RestTag.REST_OUTPUT_PARAMS
+        return searchResult.toXContent(builder, xContentParams)
     }
 }
