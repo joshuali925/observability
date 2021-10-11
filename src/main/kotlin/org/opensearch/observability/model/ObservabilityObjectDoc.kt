@@ -142,8 +142,10 @@ data class ObservabilityObjectDoc(
         builder.field(UPDATED_TIME_FIELD, updatedTime.toEpochMilli())
             .field(CREATED_TIME_FIELD, createdTime.toEpochMilli())
             .field(TENANT_FIELD, tenant)
-            .field(ACCESS_LIST_FIELD, access)
-            .field(type.tag, objectData)
+        if (params?.paramAsBoolean(ACCESS_LIST_FIELD, true) == true && access.isNotEmpty()) {
+            builder.field(ACCESS_LIST_FIELD, access)
+        }
+        builder.field(type.tag, objectData)
             .endObject()
         return builder
     }

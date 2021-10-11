@@ -156,8 +156,10 @@ internal object ObservabilityActions {
             currentDoc.type,
             currentDoc.objectData
         )
-        println("debug info by id: $objectId")
-        return GetObservabilityObjectResponse(ObservabilityObjectSearchResult(docInfo))
+        return GetObservabilityObjectResponse(
+            ObservabilityObjectSearchResult(docInfo),
+            UserAccessManager.hasAllInfoAccess(user)
+        )
     }
 
     /**
@@ -186,9 +188,7 @@ internal object ObservabilityActions {
                 )
             }
         }
-        println("debug info by id list:")
         val configSearchResult = objectDocs.map {
-            println(it.id)
             ObservabilityObjectDoc(
                 it.id!!,
                 it.observabilityObjectDoc.updatedTime,
@@ -199,7 +199,10 @@ internal object ObservabilityActions {
                 it.observabilityObjectDoc.objectData
             )
         }
-        return GetObservabilityObjectResponse(ObservabilityObjectSearchResult(configSearchResult))
+        return GetObservabilityObjectResponse(
+            ObservabilityObjectSearchResult(configSearchResult),
+            UserAccessManager.hasAllInfoAccess(user)
+        )
     }
 
     /**
@@ -215,7 +218,7 @@ internal object ObservabilityActions {
             UserAccessManager.getSearchAccessInfo(user),
             request
         )
-        return GetObservabilityObjectResponse(searchResult)
+        return GetObservabilityObjectResponse(searchResult, UserAccessManager.hasAllInfoAccess(user))
     }
 
     /**

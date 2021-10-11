@@ -24,6 +24,7 @@ import java.io.IOException
  */
 internal class GetObservabilityObjectResponse : BaseResponse {
     val searchResult: ObservabilityObjectSearchResult
+    private val filterSensitiveInfo: Boolean
 
     companion object {
 
@@ -39,7 +40,7 @@ internal class GetObservabilityObjectResponse : BaseResponse {
         @JvmStatic
         @Throws(IOException::class)
         fun parse(parser: XContentParser): GetObservabilityObjectResponse {
-            return GetObservabilityObjectResponse(ObservabilityObjectSearchResult(parser))
+            return GetObservabilityObjectResponse(ObservabilityObjectSearchResult(parser), false)
         }
     }
 
@@ -47,8 +48,9 @@ internal class GetObservabilityObjectResponse : BaseResponse {
      * constructor for creating the class
      * @param searchResult the ObservabilityObject list
      */
-    constructor(searchResult: ObservabilityObjectSearchResult) {
+    constructor(searchResult: ObservabilityObjectSearchResult, filterSensitiveInfo: Boolean) {
         this.searchResult = searchResult
+        this.filterSensitiveInfo = filterSensitiveInfo
     }
 
     /**
@@ -57,6 +59,7 @@ internal class GetObservabilityObjectResponse : BaseResponse {
     @Throws(IOException::class)
     constructor(input: StreamInput) : super(input) {
         searchResult = ObservabilityObjectSearchResult(input)
+        filterSensitiveInfo = input.readBoolean()
     }
 
     /**
@@ -65,13 +68,18 @@ internal class GetObservabilityObjectResponse : BaseResponse {
     @Throws(IOException::class)
     override fun writeTo(output: StreamOutput) {
         searchResult.writeTo(output)
+        output.writeBoolean(filterSensitiveInfo)
     }
 
     /**
      * {@inheritDoc}
      */
     override fun toXContent(builder: XContentBuilder?, params: ToXContent.Params?): XContentBuilder {
-        val xContentParams = RestTag.REST_OUTPUT_PARAMS
+        val xContentParams = if (filterSensitiveInfo) {
+            RestTag.FILTERED_REST_OUTPUT_PARAMS
+        } else {
+            RestTag.REST_OUTPUT_PARAMS
+        }
         return searchResult.toXContent(builder, xContentParams)
     }
 }
