@@ -48,6 +48,7 @@ data class ObservabilityObjectDoc(
          */
         @JvmStatic
         @Throws(IOException::class)
+        @Suppress("ComplexMethod")
         fun parse(parser: XContentParser, useId: String? = null): ObservabilityObjectDoc {
             var objectId: String? = useId
             var updatedTime: Instant? = null

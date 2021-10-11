@@ -261,6 +261,7 @@ internal data class OperationalPanel(
              * @param parser data referenced at parser
              * @return created Source object
              */
+            @Suppress("ComplexMethod")
             fun parse(parser: XContentParser): Visualization {
                 var id: String? = null
                 var title: String? = null
