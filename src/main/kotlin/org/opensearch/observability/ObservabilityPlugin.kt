@@ -67,7 +67,6 @@ class ObservabilityPlugin : Plugin(), ActionPlugin {
     companion object {
         const val PLUGIN_NAME = "opensearch-observability"
         const val LOG_PREFIX = "observability"
-        const val BASE_NOTEBOOKS_URI = "/_plugins/_notebooks"
         const val BASE_OBSERVABILITY_URI = "/_plugins/_observability"
     }
 

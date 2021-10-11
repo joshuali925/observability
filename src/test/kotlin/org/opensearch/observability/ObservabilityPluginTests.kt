@@ -28,7 +28,7 @@ package org.opensearch.observability
 
 import org.opensearch.test.OpenSearchTestCase
 
-class NotebooksPluginTests : OpenSearchTestCase() {
+class ObservabilityPluginTests : OpenSearchTestCase() {
     fun testSample() {
     }
 }

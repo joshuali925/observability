@@ -28,7 +28,7 @@
 package org.opensearch.observability.rest
 
 import org.junit.Assert
-import org.opensearch.observability.ObservabilityPlugin.Companion.BASE_NOTEBOOKS_URI
+import org.opensearch.observability.ObservabilityPlugin.Companion.BASE_OBSERVABILITY_URI
 import org.opensearch.observability.PluginRestTestCase
 import org.opensearch.observability.constructNotebookRequest
 import org.opensearch.observability.jsonify
@@ -38,16 +38,16 @@ import org.opensearch.rest.RestRequest
 import org.opensearch.rest.RestStatus
 import java.time.Instant
 
-class NotebooksIT : PluginRestTestCase() {
+class ObservabilityIT : PluginRestTestCase() {
     private fun createNotebook(name: String = "test"): String {
         val notebookCreateRequest = constructNotebookRequest(name)
         val notebookCreateResponse = executeRequest(
             RestRequest.Method.POST.name,
-            "$BASE_NOTEBOOKS_URI/notebook",
+            "$BASE_OBSERVABILITY_URI/object",
             notebookCreateRequest,
             RestStatus.OK.status
         )
-        val notebookId = notebookCreateResponse.get("notebookId").asString
+        val notebookId = notebookCreateResponse.get("objectId").asString
         Assert.assertNotNull("notebookId should be generated", notebookId)
         Thread.sleep(100)
         return notebookId
@@ -58,7 +58,7 @@ class NotebooksIT : PluginRestTestCase() {
 
         val notebookInvalidCreateResponse = executeRequest(
             RestRequest.Method.POST.name,
-            "$BASE_NOTEBOOKS_URI/notebook",
+            "$BASE_OBSERVABILITY_URI/object",
             "",
             RestStatus.BAD_REQUEST.status
         )
@@ -70,22 +70,22 @@ class NotebooksIT : PluginRestTestCase() {
         val notebookCreateRequest = constructNotebookRequest()
         val notebookCreateResponse = executeRequest(
             RestRequest.Method.POST.name,
-            "$BASE_NOTEBOOKS_URI/notebook",
+            "$BASE_OBSERVABILITY_URI/object",
             notebookCreateRequest,
             RestStatus.OK.status
         )
-        val notebookId = notebookCreateResponse.get("notebookId").asString
+        val notebookId = notebookCreateResponse.get("objectId").asString
         Assert.assertNotNull("notebookId should be generated", notebookId)
         Thread.sleep(100)
 
         val notebooksGetResponse = executeRequest(
             RestRequest.Method.GET.name,
-            "$BASE_NOTEBOOKS_URI/notebook/$notebookId",
+            "$BASE_OBSERVABILITY_URI/object/$notebookId",
             "",
             RestStatus.OK.status
         )
-        val notebookDetails = notebooksGetResponse.get("notebookDetails").asJsonObject
-        Assert.assertEquals(notebookId, notebookDetails.get("id").asString)
+        val notebookDetails = notebooksGetResponse.get("observabilityObjectList").asJsonArray.get(0).asJsonObject
+        Assert.assertEquals(notebookId, notebookDetails.get("objectId").asString)
         Assert.assertEquals(
             jsonify(notebookCreateRequest).get("notebook").asJsonObject,
             notebookDetails.get("notebook").asJsonObject
@@ -96,7 +96,7 @@ class NotebooksIT : PluginRestTestCase() {
 
         val notebooksInvalidGetResponse = executeRequest(
             RestRequest.Method.GET.name,
-            "$BASE_NOTEBOOKS_URI/notebook/invalid-id",
+            "$BASE_OBSERVABILITY_URI/object/invalid-id",
             "",
             RestStatus.NOT_FOUND.status
         )
@@ -111,21 +111,21 @@ class NotebooksIT : PluginRestTestCase() {
         val notebookUpdateRequest = constructNotebookRequest(newName)
         val notebookUpdateResponse = executeRequest(
             RestRequest.Method.PUT.name,
-            "$BASE_NOTEBOOKS_URI/notebook/$notebookId",
+            "$BASE_OBSERVABILITY_URI/object/$notebookId",
             notebookUpdateRequest,
             RestStatus.OK.status
         )
-        Assert.assertNotNull(notebookId, notebookUpdateResponse.get("notebookId").asString)
+        Assert.assertNotNull(notebookId, notebookUpdateResponse.get("objectId").asString)
         Thread.sleep(100)
 
         val notebooksGetResponse = executeRequest(
             RestRequest.Method.GET.name,
-            "$BASE_NOTEBOOKS_URI/notebook/$notebookId",
+            "$BASE_OBSERVABILITY_URI/object/$notebookId",
             "",
             RestStatus.OK.status
         )
-        val notebookDetails = notebooksGetResponse.get("notebookDetails").asJsonObject
-        Assert.assertEquals(notebookId, notebookDetails.get("id").asString)
+        val notebookDetails = notebooksGetResponse.get("observabilityObjectList").asJsonArray.get(0).asJsonObject
+        Assert.assertEquals(notebookId, notebookDetails.get("objectId").asString)
         Assert.assertEquals(
             newName,
             notebookDetails.get("notebook").asJsonObject.get("name").asString
@@ -134,7 +134,7 @@ class NotebooksIT : PluginRestTestCase() {
 
         val notebooksInvalidUpdateResponse = executeRequest(
             RestRequest.Method.PUT.name,
-            "$BASE_NOTEBOOKS_URI/notebook/invalid-id",
+            "$BASE_OBSERVABILITY_URI/object/invalid-id",
             notebookUpdateRequest,
             RestStatus.NOT_FOUND.status
         )
@@ -147,16 +147,19 @@ class NotebooksIT : PluginRestTestCase() {
 
         val notebookDeleteResponse = executeRequest(
             RestRequest.Method.DELETE.name,
-            "$BASE_NOTEBOOKS_URI/notebook/$notebookId",
+            "$BASE_OBSERVABILITY_URI/object/$notebookId",
             "",
             RestStatus.OK.status
         )
-        Assert.assertEquals(notebookId, notebookDeleteResponse.get("notebookId").asString)
+        Assert.assertEquals(
+            "OK",
+            notebookDeleteResponse.get("deleteResponseList").asJsonObject.get(notebookId).asString
+        )
         Thread.sleep(100)
 
         val notebookInvalidDeleteResponse = executeRequest(
             RestRequest.Method.DELETE.name,
-            "$BASE_NOTEBOOKS_URI/notebook/$notebookId",
+            "$BASE_OBSERVABILITY_URI/object/$notebookId",
             "",
             RestStatus.NOT_FOUND.status
         )
@@ -167,7 +170,7 @@ class NotebooksIT : PluginRestTestCase() {
     fun `test get all notebooks`() {
         val notebooksGetAllEmptyResponse = executeRequest(
             RestRequest.Method.GET.name,
-            "$BASE_NOTEBOOKS_URI/notebooks",
+            "$BASE_OBSERVABILITY_URI/object",
             "",
             RestStatus.OK.status
         )
@@ -178,12 +181,15 @@ class NotebooksIT : PluginRestTestCase() {
 
         val notebooksGetAllResponse = executeRequest(
             RestRequest.Method.GET.name,
-            "$BASE_NOTEBOOKS_URI/notebooks",
+            "$BASE_OBSERVABILITY_URI/object",
             "",
             RestStatus.OK.status
         )
         Assert.assertEquals(5, notebooksGetAllResponse.get("totalHits").asInt)
-        val notebooksList = notebooksGetAllResponse.get("notebookDetailsList").asJsonArray
-        Assert.assertArrayEquals(notebookIds, notebooksList.map { it.asJsonObject.get("id").asString }.toTypedArray())
+        val notebooksList = notebooksGetAllResponse.get("observabilityObjectList").asJsonArray
+        Assert.assertArrayEquals(
+            notebookIds,
+            notebooksList.map { it.asJsonObject.get("objectId").asString }.toTypedArray()
+        )
     }
 }
