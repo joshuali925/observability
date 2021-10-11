@@ -104,6 +104,7 @@ internal object ObservabilityIndex {
 
     /**
      * Create index using the mapping and settings defined in resource
+     * If .opensearch-notebooks index exists, reindex it to .opensearch-observability index and remove it
      */
     @Suppress("TooGenericExceptionCaught")
     private fun createIndex() {
@@ -130,16 +131,18 @@ internal object ObservabilityIndex {
         }
         if (isIndexExists(NOTEBOOKS_INDEX_NAME)) {
             try {
-//            val reindexRequest = ReindexRequest()
-//            reindexRequest.setSourceIndices(NOTEBOOKS_INDEX_NAME)
-//            reindexRequest.setDestIndex(INDEX_NAME)
-//            val bulkResponse: BulkByScrollResponse = client.reindex(request, RequestOptions.DEFAULT)
+                log.info("$LOG_PREFIX:Index - reindex $NOTEBOOKS_INDEX_NAME to $INDEX_NAME")
                 val reindexResponse = ReindexRequestBuilder(client, ReindexAction.INSTANCE)
                     .source(NOTEBOOKS_INDEX_NAME)
                     .destination(INDEX_NAME)
+                    .abortOnVersionConflict(false)
+                    .refresh(true)
                     .get()
-//                println(reindexResponse)
-//                println(reindexResponse.status)
+                if (!reindexResponse.isTimedOut) {
+                    log.info("$LOG_PREFIX:Index - ${reindexResponse.total} docs reindexed to $INDEX_NAME")
+                } else {
+                    throw IllegalStateException("$LOG_PREFIX:Index - reindex $NOTEBOOKS_INDEX_NAME timed out")
+                }
 
                 val deleteIndexRequest = DeleteIndexRequest(NOTEBOOKS_INDEX_NAME)
                 val actionFuture = client.admin().indices().delete(deleteIndexRequest)
@@ -147,13 +150,8 @@ internal object ObservabilityIndex {
                 if (deleteIndexResponse.isAcknowledged) {
                     log.info("$LOG_PREFIX:Index $INDEX_NAME deletion Acknowledged")
                 } else {
-                    throw IllegalStateException("$LOG_PREFIX:Index $INDEX_NAME deletion not Acknowledged")
+                    throw IllegalStateException("$LOG_PREFIX:Index $NOTEBOOKS_INDEX_NAME deletion not Acknowledged")
                 }
-
-//            val deleteIndexResponse =
-//                DeleteIndexRequestBuilder(client, DeleteIndexAction.INSTANCE, NOTEBOOKS_INDEX_NAME).get()
-//                println(deleteIndexResponse.toString())
-//                println(deleteIndexResponse.isAcknowledged)
             } catch (exception: Exception) {
                 if (exception !is ResourceNotFoundException && exception.cause !is ResourceNotFoundException) {
                     throw exception
