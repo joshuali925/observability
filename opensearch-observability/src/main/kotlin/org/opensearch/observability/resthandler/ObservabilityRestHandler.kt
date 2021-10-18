@@ -245,9 +245,7 @@ internal class ObservabilityRestHandler : BaseRestHandler() {
 
     private fun getTypesSet(typesString: String?): EnumSet<ObservabilityObjectType> {
         var types: EnumSet<ObservabilityObjectType> = EnumSet.noneOf(ObservabilityObjectType::class.java)
-        if (typesString != null) {
-            typesString.split(",").forEach { types.add(ObservabilityObjectType.fromTagOrDefault(it)) }
-        }
+        typesString?.split(",")?.forEach { types.add(ObservabilityObjectType.fromTagOrDefault(it)) }
         return types
     }
 }

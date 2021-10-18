@@ -70,7 +70,7 @@ internal object ObservabilityActions {
             request.type,
             request.objectData
         )
-        val docId = ObservabilityIndex.createObservabilityObject(objectDoc)
+        val docId = ObservabilityIndex.createObservabilityObject(objectDoc, request.objectId)
         docId ?: throw OpenSearchStatusException(
             "ObservabilityObject Creation failed",
             RestStatus.INTERNAL_SERVER_ERROR

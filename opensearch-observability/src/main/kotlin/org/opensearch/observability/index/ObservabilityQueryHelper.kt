@@ -49,6 +49,7 @@ internal class ObservabilityQueryHelper(private val types: EnumSet<Observability
         val FILTER_PARAMS = ALL_FIELDS.union(setOf(QUERY_FIELD))
     }
 
+    // prefix is used to prepend inner fields like "name" to become "notebook.name"
     private val prefixes = if (types.size == 0) {
         ObservabilityObjectType.getAll()
     } else {

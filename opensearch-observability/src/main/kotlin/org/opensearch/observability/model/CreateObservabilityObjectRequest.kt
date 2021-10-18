@@ -63,6 +63,7 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
                 val fieldName = parser.currentName()
                 parser.nextToken()
                 when (fieldName) {
+                    OBJECT_ID_FIELD -> objectId = parser.text()
                     else -> {
                         val objectTypeForTag = ObservabilityObjectType.fromTagOrDefault(fieldName)
                         if (objectTypeForTag != ObservabilityObjectType.NONE && baseObjectData == null) {
@@ -76,10 +77,9 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
                     }
                 }
             }
-            // TODO validate object ID if provided
             type ?: throw IllegalArgumentException("Object data field absent")
             baseObjectData ?: throw IllegalArgumentException("Object data field absent")
-            return CreateObservabilityObjectRequest(baseObjectData, type, objectId)
+            return CreateObservabilityObjectRequest(objectId, type, baseObjectData)
         }
     }
 
@@ -96,13 +96,14 @@ internal class CreateObservabilityObjectRequest : ActionRequest, ToXContentObjec
 
     /**
      * constructor for creating the class
-     * @param objectData the ObservabilityObject
      * @param objectId optional id to use for ObservabilityObject
+     * @param type type of ObservabilityObject
+     * @param objectData the ObservabilityObject
      */
-    constructor(objectData: BaseObjectData, type: ObservabilityObjectType, objectId: String? = null) {
-        this.objectData = objectData
-        this.type = type
+    constructor(objectId: String? = null, type: ObservabilityObjectType, objectData: BaseObjectData) {
         this.objectId = objectId
+        this.type = type
+        this.objectData = objectData
     }
 
     /**

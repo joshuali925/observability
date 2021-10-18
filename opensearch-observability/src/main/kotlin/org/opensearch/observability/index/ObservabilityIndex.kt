@@ -185,14 +185,18 @@ internal object ObservabilityIndex {
      * Create observability object
      *
      * @param observabilityObjectDoc
+     * @param id
      * @return object id if successful, otherwise null
      */
-    fun createObservabilityObject(observabilityObjectDoc: ObservabilityObjectDoc): String? {
+    fun createObservabilityObject(observabilityObjectDoc: ObservabilityObjectDoc, id: String? = null): String? {
         createIndex()
         val xContent = observabilityObjectDoc.toXContent()
         val indexRequest = IndexRequest(INDEX_NAME)
             .source(xContent)
             .create(true)
+        if (id != null) {
+            indexRequest.id(id)
+        }
         val actionFuture = client.index(indexRequest)
         val response = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
         return if (response.result != DocWriteResponse.Result.CREATED) {
