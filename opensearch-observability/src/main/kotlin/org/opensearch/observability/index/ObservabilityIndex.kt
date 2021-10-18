@@ -138,12 +138,15 @@ internal object ObservabilityIndex {
                     .abortOnVersionConflict(false)
                     .refresh(true)
                     .get()
-                if (!reindexResponse.isTimedOut) {
-                    log.info("$LOG_PREFIX:Index - ${reindexResponse.total} docs reindexed to $INDEX_NAME")
-                } else {
+                if (reindexResponse.isTimedOut) {
                     throw IllegalStateException("$LOG_PREFIX:Index - reindex $NOTEBOOKS_INDEX_NAME timed out")
+                } else if (reindexResponse.searchFailures.isNotEmpty()) {
+                    throw IllegalStateException("$LOG_PREFIX:Index - reindex $NOTEBOOKS_INDEX_NAME failed with searchFailures")
+                } else if (reindexResponse.bulkFailures.isNotEmpty()) {
+                    throw IllegalStateException("$LOG_PREFIX:Index - reindex $NOTEBOOKS_INDEX_NAME failed with bulkFailures")
                 }
 
+                log.info("$LOG_PREFIX:Index - ${reindexResponse.total} docs reindexed to $INDEX_NAME")
                 val deleteIndexRequest = DeleteIndexRequest(NOTEBOOKS_INDEX_NAME)
                 val actionFuture = client.admin().indices().delete(deleteIndexRequest)
                 val deleteIndexResponse = actionFuture.actionGet(PluginSettings.operationTimeoutMs)
