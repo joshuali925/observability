@@ -76,3 +76,11 @@ properties:
         fields:
           keyword:
             type: keyword
+  timestamp:
+    type: object
+    properties:
+      name:
+        type: text
+        fields:
+          keyword:
+            type: keyword
