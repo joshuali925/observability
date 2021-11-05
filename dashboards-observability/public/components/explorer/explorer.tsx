@@ -160,6 +160,34 @@ export const Explorer = ({
   explorerFieldsRef.current = explorerFields;
   // queryTabsRef.current = queryTabs;
 
+  let minInterval = 'y';
+  const findAutoInterval = (startTime: string, endTime: string) => {
+    if (startTime?.length === 0 || endTime?.length === 0 || startTime === endTime) return 'd';
+    const momentStart = dateMath.parse(startTime)!;
+    const momentEnd = dateMath.parse(endTime)!;
+    const diffSeconds = momentEnd.unix() - momentStart.unix();
+
+    // less than 1 second
+    if (diffSeconds <= 1) minInterval = 'ms';
+    // less than 2 minutes
+    else if (diffSeconds <= 60 * 2) minInterval = 's';
+    // less than 2 hours
+    else if (diffSeconds <= 3600 * 2) minInterval = 'm';
+    // less than 2 days
+    else if (diffSeconds <= 86400 * 2) minInterval = 'h';
+    // less than 1 month
+    else if (diffSeconds <= 86400 * 31) minInterval = 'd';
+    // less than 3 months
+    else if (diffSeconds <= 86400 * 93) minInterval = 'w';
+    // less than 1 year
+    else if (diffSeconds <= 86400 * 366) minInterval = 'M';
+
+    setTimeIntervalOptions([
+      { text: 'Auto', value: 'auto_' + minInterval },
+      ...TIME_INTERVAL_OPTIONS,
+    ]);
+  };
+
   const composeFinalQuery = (curQuery: any, timeField: string) => {
     if (isEmpty(curQuery![RAW_QUERY])) return '';
     return insertDateRangeToQuery({
