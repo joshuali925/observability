@@ -18,6 +18,8 @@ import {
   EuiButtonIcon
 } from '@elastic/eui';
 
+import { EuiSpacer, EuiLink, EuiInMemoryTable, EuiIcon, EuiLoadingChart } from '@elastic/eui';
+import { FILTER_OPTIONS } from '../../../../common/constants/explorer';
 
 interface TableData {
   savedHistories: Array<any>;
@@ -36,7 +38,6 @@ export function Histories({
   pageIndexRef.current = pageIndex;
   const pageSizeRef = useRef();
   pageSizeRef.current = pageSize;
-
 
   const onTableChange = ({ page = {} }) => {
     const { index: pageIndex, size: pageSize } = page;
@@ -169,5 +170,3 @@ export function Histories({
     />
   );
 }
-
-
