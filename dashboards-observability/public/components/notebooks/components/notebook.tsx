@@ -39,7 +39,6 @@ import { ParaType } from '../../../../common/types/notebooks';
 import { GenerateReportLoadingModal } from './helpers/custom_modals/reporting_loading_modal';
 import { defaultParagraphParser } from './helpers/default_parser';
 import { DeleteNotebookModal, getCustomModal, getDeleteModal } from './helpers/modal_containers';
-import { PanelWrapper } from './helpers/panel_wrapper';
 import {
   contextMenuCreateReportDefinition,
   contextMenuViewReports,
@@ -975,7 +974,6 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
             </EuiFlexGroup>
             {this.state.parsedPara.length > 0 ? (
               <>
-                <PanelWrapper>
                   {this.state.parsedPara.map((para: ParaType, index: number) => (
                     <div
                       ref={this.state.parsedPara[index].paraDivRef}
@@ -1009,7 +1007,6 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
                       />
                     </div>
                   ))}
-                </PanelWrapper>
                 {this.state.selectedViewId !== 'output_only' && (
                   <>
                     <EuiSpacer />
