@@ -24,9 +24,12 @@
   "devDependencies": {
     "@cypress/code-coverage": "^3.9.11",
     "@cypress/skip-test": "^2.6.1",
+    "@cypress/webpack-preprocessor": "^5.10.0",
+    "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@types/enzyme-adapter-react-16": "^1.0.6",
     "@types/react-plotly.js": "^2.5.0",
     "@types/react-test-renderer": "^16.9.1",
+    "babel-plugin-istanbul": "^6.0.0",
     "cypress": "^5.0.0",
     "enzyme-adapter-react-16": "^1.15.2",
     "eslint": "^6.8.0",
@@ -40,5 +43,9 @@
     "lodash": "^4.17.21",
     "glob-parent": "^5.1.2",
     "ansi-regex": "^5.0.1"
+  },
+  "nyc": {
+    "extends": "@istanbuljs/nyc-config-typescript",
+    "all": true
   }
 }
