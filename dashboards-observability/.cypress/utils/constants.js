@@ -29,8 +29,8 @@ export const testDataSet = [
 ]
 
 export const setTimeFilter = (setEndTime = false, refresh = true) => {
-  const startTime = 'Mar 25, 2021 @ 10:00:00.000';
-  const endTime = 'Mar 25, 2021 @ 11:00:00.000';
+  const startTime = 'Mar 25, 2021 @ 17:00:00.000';
+  const endTime = 'Mar 25, 2021 @ 18:00:00.000';
   cy.get('button.euiButtonEmpty[aria-label="Date quick select"]').click();
   cy.get('.euiQuickSelect__applyButton').click();
   cy.get('.euiSuperDatePicker__prettyFormatLink').click();
