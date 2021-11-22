@@ -21,7 +21,7 @@
  * @type {Cypress.PluginConfig}
  */
 
-const cypressWebpackPreprocessor = require('@cypress/webpack-preprocessor');
+const webpackPreprocessor = require('@cypress/webpack-preprocessor');
 
 const fs = require('fs');
 
@@ -85,24 +85,69 @@ const webpackOptions = {
   },
 };
 
-const options = {
+/* const options = {
   webpackOptions,
   watchOptions: {},
   additionalEntries: addSourcesAsAdditionalEntries(),
-};
+}; */
 
+const defaults = webpackPreprocessor.defaultOptions;
 module.exports = (on, config) => {
   require('@cypress/code-coverage/task')(on, config);
   // on('file:preprocessor', require('@cypress/code-coverage/use-browserify-istanbul'))
   // return config
+  delete defaults.webpackOptions.module.rules[0].use[0].options.presets;
   on('file:preprocessor', require('@cypress/code-coverage/use-babelrc'));
-  on('file:preprocessor', cypressWebpackPreprocessor(options));
+  // on('file:preprocessor', webpackPreprocessor(defaults))
+  on(
+    'file:preprocessor',
+    webpackPreprocessor({
+      mode: 'development',
+      module: {
+        rules: [
+          {
+            test: /\.tsx?$/,
+            exclude: [/node_modules/],
+            use: [
+              {
+                loader: 'babel-loader',
+                options: {
+                  presets: [
+                    [
+                      '@babel/preset-env',
+                      {
+                        targets: { node: '10' },
+                      },
+                    ],
+                    '@babel/preset-react',
+                    '@babel/preset-typescript',
+                  ],
+                  plugins: [
+                    '@babel/plugin-transform-modules-commonjs',
+                    ['@babel/plugin-transform-runtime', { regenerator: true }],
+                    '@babel/plugin-proposal-class-properties',
+                    '@babel/plugin-proposal-object-rest-spread',
+                    'istanbul',
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      },
+      resolve: {
+        extensions: ['.tsx', '.ts', '.js', '.css'],
+      },
+    })
+  );
+  // on('file:preprocessor', webpackPreprocessor(options));
+  return config;
 
-  return {
-    ...config,
+  /* return {
+    // ...config,
     env: {
       ...config.env,
       coverage: true,
     },
-  };
+  }; */
 };
