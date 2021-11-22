@@ -43,9 +43,5 @@
     "lodash": "^4.17.21",
     "glob-parent": "^5.1.2",
     "ansi-regex": "^5.0.1"
-  },
-  "nyc": {
-    "extends": "@istanbuljs/nyc-config-typescript",
-    "all": true
   }
 }
