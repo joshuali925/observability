@@ -3,13 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.observability.notebooks1
+package org.opensearch.observability.bwc
 
+import org.junit.Assert
+import org.opensearch.observability.ObservabilityPlugin.Companion.BASE_NOTEBOOKS_URI
+import org.opensearch.observability.PluginRestTestCase
+import org.opensearch.observability.constructNotebookRequest
+import org.opensearch.observability.jsonify
+import org.opensearch.observability.validateErrorResponse
+import org.opensearch.observability.validateTimeRecency
 import org.opensearch.rest.RestRequest
 import org.opensearch.rest.RestStatus
-import org.junit.Assert
-import org.opensearch.observability.*
-import org.opensearch.observability.ObservabilityPlugin.Companion.BASE_NOTEBOOKS_URI
 import java.time.Instant
 
 class NotebooksIT : PluginRestTestCase() {

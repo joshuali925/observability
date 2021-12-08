@@ -229,7 +229,9 @@ integTest {
     }
 
     if (System.getProperty("tests.rest.bwcsuite") == null) {
-        exclude 'org.opensearch.observability.bwc.*IT'
+        filter {
+            excludeTestsMatching "org.opensearch.observability.bwc.*IT"
+        }
     }
 }
 
