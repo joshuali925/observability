@@ -714,15 +714,19 @@ export const Explorer = ({
                           <EuiFlexGroup>
                             <EuiFlexItem grow={false}>
                               {viewLogPatterns && (
-                                <EuiLink onClick={() => onPatternSelection('')}>
-                                  Clear Selection
-                                </EuiLink>
+                                <EuiText size="s">
+                                  <EuiLink onClick={() => onPatternSelection('')}>
+                                    Clear Selection
+                                  </EuiLink>
+                                </EuiText>
                               )}
                             </EuiFlexItem>
                             <EuiFlexItem grow={false}>
-                              <EuiLink onClick={() => setViewLogPatterns(!viewLogPatterns)}>
-                                {`${viewLogPatterns ? 'Hide' : 'Show'} Patterns`}
-                              </EuiLink>
+                              <EuiText size="s">
+                                <EuiLink onClick={() => setViewLogPatterns(!viewLogPatterns)}>
+                                  {`${viewLogPatterns ? 'Hide' : 'Show'} Patterns`}
+                                </EuiLink>
+                              </EuiText>
                             </EuiFlexItem>
                           </EuiFlexGroup>
                         </EuiFlexItem>
