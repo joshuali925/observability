@@ -8,7 +8,7 @@ import { isEmpty, isUndefined } from 'lodash';
 import PPLService from 'public/services/requests/ppl';
 import { useRef } from 'react';
 import { batch, useDispatch, useSelector } from 'react-redux';
-import { FINAL_QUERY, SELECTED_PATTERN } from '../../../../common/constants/explorer';
+import { FINAL_QUERY, SELECTED_PATTERN, SELECTED_TIMESTAMP } from '../../../../common/constants/explorer';
 import { setPatterns, reset as resetPatterns } from '../redux/slices/patterns_slice';
 import { changeQuery, selectQueries } from '../redux/slices/query_slice';
 import { useFetchEvents } from './use_fetch_events';
@@ -46,8 +46,14 @@ export const useFetchPatterns = ({ pplService, requestParams }: IFetchPatternsPa
     });
   };
 
-  const buildPatternDataQuery = (query: string, field: string) => {
-    return `${query.trim()} | patterns ${field} | stats count(), take(${field}, 1) by patterns_field`;
+  const buildPatternDataQuery = (query: string, patternField: string) => {
+    console.log('❗patterns query:', query);
+    return `${query.trim()} | patterns \`${patternField}\` | stats count(), take(\`${patternField}\`, 1) by patterns_field`;
+  };
+
+  const buildPatternAnomaliesQuery = (query: string, patternField: string, timestampField: string) => {
+    console.log('❗patterns AD query:', query);
+    return `${query.trim()} | patterns \`${patternField}\` | stats count() by span(\`${timestampField}\`, 24h), patterns_field | AD time_field='span(\`${timestampField}\`, 24h)' category_field='patterns_field'`;
   };
 
   const getPatterns = (errorHandler: (error: any) => void, query?: string) => {
@@ -55,31 +61,51 @@ export const useFetchPatterns = ({ pplService, requestParams }: IFetchPatternsPa
     const rawQuery = cur![requestParams.tabId][FINAL_QUERY];
     const searchQuery = isUndefined(query) ? rawQuery : query;
     const patternField = cur![requestParams.tabId][SELECTED_PATTERN];
+    const timestampField = cur![requestParams.tabId][SELECTED_TIMESTAMP];
+    console.log('❗cur:', cur);
     const statsQuery = buildPatternDataQuery(searchQuery, patternField);
+    const anomaliesQuery = buildPatternAnomaliesQuery(searchQuery, patternField, timestampField);
+    console.log('❗anomaliesQuery:', anomaliesQuery);
     // Fetch patterns data for the current query results
     fetchEvents(
       { query: statsQuery },
       'jdbc',
-      (res: { datarows: any[] }) => {
+      async (res: { datarows: any[] }) => {
         if (!isEmpty(res.datarows)) {
-          const formatToTableData = res.datarows.map((row: any) => {
-            return {
-              count: row[0],
-              pattern: row[2],
-              sampleLog: row[1][0],
-            } as PatternTableData;
-          });
-          // Fetch total number of events to divide count by for ratio
-          fetchEvents(
-            {
-              query: `${rawQuery} | stats count()`,
-            },
+          await fetchEvents(
+            { query: anomaliesQuery },
             'jdbc',
-            (countRes: any) => {
-              dispatchOnPatterns({
-                patternTableData: formatToTableData,
-                total: countRes.datarows[0],
+            (anomaliesRes: any) => {
+              console.log('❗anomaliesRes:', anomaliesRes);
+              const anomaliesMap: {[x: string]: number} = {};
+              anomaliesRes.datarows.forEach((row: any) => {
+                if (row[3] > 0) {
+                  anomaliesMap[row[2]] = (anomaliesMap[2] || 0) + 1;
+                }
               });
+              const formatToTableData: PatternTableData[] = res.datarows.map((row: any) => {
+                return {
+                  count: row[0],
+                  pattern: row[2],
+                  sampleLog: row[1][0],
+                  anomalyCount: anomaliesMap[row[2]] || 0,
+                };
+              });
+              console.log('❗formatToTableData:', formatToTableData);
+              // Fetch total number of events to divide count by for ratio
+              fetchEvents(
+                {
+                  query: `${rawQuery} | stats count()`,
+                },
+                'jdbc',
+                (countRes: any) => {
+                  dispatchOnPatterns({
+                    patternTableData: formatToTableData,
+                    total: countRes.datarows[0],
+                  });
+                },
+                errorHandler
+              );
             },
             errorHandler
           );
