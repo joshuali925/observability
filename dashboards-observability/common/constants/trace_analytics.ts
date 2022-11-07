@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const DATA_PREPPER_INDEX_NAME = 'otel-v1-apm-span-*';
+export const DATA_PREPPER_INDEX_NAME = 'otel-v1-apm-span*';
 export const DATA_PREPPER_SERVICE_INDEX_NAME = 'otel-v1-apm-service-map*';
 export const TRACE_ANALYTICS_DATE_FORMAT = 'MM/DD/YYYY HH:mm:ss';
 export const TRACE_ANALYTICS_PLOTS_DATE_FORMAT = 'MMM D, YYYY HH:mm:ss';
