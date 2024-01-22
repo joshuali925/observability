@@ -30,7 +30,6 @@ task dummyTest(type: Test) {
     jacoco {
         destinationFile = file("${jacocoDir}/test.exec")
         destinationFile.parentFile.mkdirs()
-        jmx = true
     }
 }
 
@@ -40,6 +39,11 @@ task dummyIntegTest(type: Test) {
     jacoco {
         destinationFile = file("${jacocoDir}/integTest.exec")
         destinationFile.parentFile.mkdirs()
+    }
+}
+
+integTest {
+    jacoco {
         jmx = true
     }
 }
